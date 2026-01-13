@@ -58,9 +58,20 @@ app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/contact', require('./routes/contactRoutes'));
 
 // Database Connection
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/it-student-repo')
-    .then(() => console.log('MongoDB Connected'))
-    .catch(err => console.error(err));
+// Database Connection
+const connectDB = async () => {
+    try {
+        const conn = await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/it-student-repo');
+        console.log(`MongoDB Connected: ${conn.connection.host}`);
+        console.log(`Database Name: ${conn.connection.name}`); // Log explicit DB name
+    } catch (err) {
+        console.error(err.message);
+        process.exit(1);
+    }
+};
+
+// Connect to Database
+connectDB();
 
 // Base Route
 app.get('/', (req, res) => {
