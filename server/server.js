@@ -30,6 +30,11 @@ app.use(cors({
             return callback(null, true);
         }
 
+        // Allow any Vercel preview URL (ends with .vercel.app)
+        if (/\.vercel\.app$/.test(origin)) {
+            return callback(null, true);
+        }
+
         if (allowedOrigins.indexOf(origin) === -1) {
             console.log('FAILED CORS Check. Origin:', origin);
             console.log('Allowed:', allowedOrigins);
