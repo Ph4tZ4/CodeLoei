@@ -300,7 +300,7 @@ const IntroOverlay = ({ onComplete }: { onComplete: () => void }) => {
                 {/* The Underscore ( _ ) - Changed to Rounded Div */}
                 {/* Adjusting position: moved up slightly (mt-24 -> mt-20) */}
                 <div className={`transform ${getUnderscoreStyle()} relative mt-20 -ml-10 origin-center`}>
-                    <div className="bg-text-primary rounded-full" style={{ width: '80px', height: '14px' }}></div>
+                    <div className="bg-[var(--color-text-primary)] rounded-full" style={{ width: '80px', height: '14px' }}></div>
                 </div>
 
             </div>
