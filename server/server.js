@@ -13,7 +13,13 @@ const app = express();
 const PORT = process.env.PORT || 8000;
 
 // Middleware
-const allowedOrigins = ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173'];
+const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5173',
+    process.env.CLIENT_URL
+].filter(Boolean);
 app.use(cors({
     origin: function (origin, callback) {
         // allow requests with no origin (like mobile apps or curl requests)

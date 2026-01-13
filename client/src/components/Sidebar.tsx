@@ -45,7 +45,10 @@ const Sidebar = ({ user, onCloseMobile }: SidebarProps) => {
         <div className="flex flex-col h-full">
             {/* Profile Section */}
             <div className="p-6 border-b border-zinc-800">
-                <div className="flex items-center gap-3 mb-1 cursor-pointer hover:bg-zinc-900 rounded-md p-1 -m-1 transition-colors" onClick={() => navigate('/profile')}>
+                <div
+                    className={`flex items-center gap-3 mb-1 rounded-md p-1 -m-1 transition-colors ${!isAdmin ? 'cursor-pointer hover:bg-zinc-900' : ''}`}
+                    onClick={() => !isAdmin && navigate('/profile')}
+                >
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-white to-gray-500 p-[1px]">
                         <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
                             {user && user.photoURL ? (
