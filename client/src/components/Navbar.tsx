@@ -107,25 +107,27 @@ const Navbar = ({
                     <div className="flex items-center gap-4">
                         {!user && (
                             <>
-                                {/* Theme Toggle */}
-                                <button
-                                    onClick={toggleTheme}
-                                    className="p-2 text-text-muted hover:text-text-primary hover:bg-white/10 rounded-full transition-colors"
-                                    aria-label="Toggle Theme"
-                                >
-                                    {theme === 'dark' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-                                </button>
+                                <div className="fixed left-4 top-24 z-50 flex flex-row gap-3 md:static md:flex-row md:items-center md:gap-0">
+                                    {/* Theme Toggle */}
+                                    <button
+                                        onClick={toggleTheme}
+                                        className="w-10 h-10 bg-bg-secondary/90 backdrop-blur-sm border border-white/10 shadow-xl rounded-full text-text-primary flex items-center justify-center transition-all hover:scale-110 md:w-auto md:h-auto md:bg-transparent md:backdrop-blur-none md:border-0 md:shadow-none md:text-text-muted md:hover:scale-100 md:hover:text-text-primary md:hover:bg-white/10 md:p-2"
+                                        aria-label="Toggle Theme"
+                                    >
+                                        {theme === 'dark' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+                                    </button>
 
-                                {/* Language Toggle */}
-                                <button
-                                    onClick={() => setLanguage(language === 'th' ? 'en' : 'th')}
-                                    className="p-2 text-text-muted hover:text-text-primary hover:bg-white/10 rounded-full transition-colors font-mono font-bold text-sm w-9 h-9 flex items-center justify-center"
-                                    aria-label="Toggle Language"
-                                >
-                                    {language === 'th' ? 'TH' : 'EN'}
-                                </button>
+                                    {/* Language Toggle */}
+                                    <button
+                                        onClick={() => setLanguage(language === 'th' ? 'en' : 'th')}
+                                        className="w-10 h-10 bg-bg-secondary/90 backdrop-blur-sm border border-white/10 shadow-xl rounded-full text-text-primary font-mono font-bold text-sm flex items-center justify-center transition-all hover:scale-110 md:w-9 md:h-9 md:bg-transparent md:backdrop-blur-none md:border-0 md:shadow-none md:text-text-muted md:hover:scale-100 md:hover:text-text-primary md:hover:bg-white/10 md:p-2"
+                                        aria-label="Toggle Language"
+                                    >
+                                        {language === 'th' ? 'TH' : 'EN'}
+                                    </button>
+                                </div>
 
-                                <div className="h-6 w-[1px] bg-white/10 hidden sm:block"></div>
+                                <div className="h-6 w-[1px] bg-white/10 hidden md:block"></div>
                             </>
                         )}
 
