@@ -31,6 +31,8 @@ app.use(cors({
         }
 
         if (allowedOrigins.indexOf(origin) === -1) {
+            console.log('FAILED CORS Check. Origin:', origin);
+            console.log('Allowed:', allowedOrigins);
             const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
             return callback(new Error(msg), false);
         }
