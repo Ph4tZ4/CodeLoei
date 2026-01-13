@@ -61,6 +61,7 @@ export const th = {
     'sidebar.settings': 'การตั้งค่า',
     'sidebar.help': 'ความช่วยเหลือ',
     'sidebar.feedback': 'ส่งความคิดเห็น',
+    'sidebar.contact_admin': 'ติดต่อผู้ดูแล',
     'sidebar.admin_logout': 'ออกจากระบบผู้ดูแล',
     'sidebar.logged_in_as': 'เข้าสู่ระบบในชื่อ',
     'sidebar.guest': 'ผู้เยี่ยมชม',
@@ -378,5 +379,18 @@ export const th = {
     'contact.sending': 'กำลังดำเนินการ...',
     'contact.sent': 'ส่งข้อความเรียบร้อย',
     'contact.error': 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง',
+    'contact.info.title': 'ข้อมูลการติดต่อ',
+    'contact.info.address': 'ที่อยู่',
+    'contact.info.address_value': 'สาขาวิชาเทคโนโลยีสารสนเทศ แผนกวิชาเทคโนโลยีสารสนเทศ วิทยาลัยเทคนิคเลย',
+    'contact.info.phone': 'เบอร์โทรศัพท์',
+    'contact.info.phone_value': '099-073-2424',
+    'contact.info.email_official': 'อีเมลหน่วยงาน',
+    'contact.info.email_value': 'codeloeiofficial@gmail.com',
+    'contact.info.hours': 'เวลาทำการ',
+    'contact.info.hours_value': 'จันทร์ - ศุกร์: 08:30 - 16:30',
 
+    // Admin Inbox
+    'admin.inbox.title': 'กล่องข้อความผู้ดูแลระบบ',
+    'admin.inbox.subtitle': 'จัดการข้อความติดต่อ',
+    'admin.inbox.search_placeholder': 'ค้นหาด้วยหัวข้อ หรือ ชื่อนักศึกษา...',
 };

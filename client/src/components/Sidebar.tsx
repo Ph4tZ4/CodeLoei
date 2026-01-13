@@ -1,4 +1,4 @@
-import { User, Home, LayoutGrid, Info, Clock, Settings, HelpCircle, MessageSquare, ChevronRight } from 'lucide-react';
+import { User, Home, LayoutGrid, Info, Clock, Settings, HelpCircle, MessageSquare, ChevronRight, Mail } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -77,6 +77,7 @@ const Sidebar = ({ user, onCloseMobile }: SidebarProps) => {
                         <SidebarItem path="/admin/projects" label="จัดการโครงการ" icon={Settings} />
                         <SidebarItem path="/admin/users" label="จัดการผู้ใช้" icon={User} />
                         <SidebarItem path="/admin/news" label="จัดการข่าวสาร" icon={MessageSquare} />
+                        <SidebarItem path="/admin/inbox" label="กล่องข้อความ" icon={Mail} />
                     </>
                 ) : (
                     <>
@@ -98,6 +99,7 @@ const Sidebar = ({ user, onCloseMobile }: SidebarProps) => {
                     <>
                         <SidebarItem path="/settings" label={t('sidebar.settings')} icon={Settings} />
                         <SidebarItem path="/help" label={t('sidebar.help')} icon={HelpCircle} />
+                        <SidebarItem path="/contact" label={t('sidebar.contact_admin')} icon={MessageSquare} />
                         <SidebarItem path="/feedback" label={t('sidebar.feedback')} icon={MessageSquare} />
                     </>
                 ) : (

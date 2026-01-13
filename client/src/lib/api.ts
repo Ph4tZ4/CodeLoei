@@ -28,13 +28,15 @@ export const api = {
             body: JSON.stringify(body)
         });
         if (!res.ok) {
+            let errorMsg = 'Something went wrong';
             try {
                 const err = await res.json();
-                throw new Error(err.msg || 'Something went wrong');
+                errorMsg = err.msg || errorMsg;
             } catch (e) {
                 // If json parse fails, it's likely a text response or HTML
-                throw new Error('Server error: Invalid response from server');
+                errorMsg = 'Server error: Invalid response from server';
             }
+            throw new Error(errorMsg);
         }
         return res.json();
     },
@@ -163,7 +165,18 @@ export const api = {
     async deleteFile(projectId: string, path: string, token: string) {
         return this.delete(`/projects/${projectId}/files?path=${encodeURIComponent(path)}`, token);
     },
+    // Contact
+    // Contact
     async submitContact(data: any) {
         return this.post('/contact', data);
-    }
+    },
+    async getContacts(token: string) {
+        return this.get('/contact', token);
+    },
+    async markContactAsRead(id: string, token: string) {
+        return this.put(`/contact/${id}/read`, {}, token);
+    },
+    async deleteContact(id: string, token: string) {
+        return this.delete(`/contact/${id}`, token);
+    },
 };

@@ -24,6 +24,15 @@ const ContactSchema = new mongoose.Schema({
     createdAt: {
         type: Date,
         default: Date.now
+    },
+    isRead: {
+        type: Boolean,
+        default: false
+    },
+    status: {
+        type: String,
+        enum: ['new', 'read', 'replied'],
+        default: 'new'
     }
 });
 

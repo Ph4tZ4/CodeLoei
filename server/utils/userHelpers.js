@@ -9,8 +9,8 @@ exports.classifyUserType = (email) => {
     // 2. Check ID Format (11 digits)
     if (!/^\d+$/.test(username) || username.length !== 11) return 'general';
 
-    // 3. Check Department Code (31901)
-    if (!username.includes('31901')) return 'general';
+    // 3. Check Department Code (31901 or 21901)
+    if (!username.includes('31901') && !username.includes('21901')) return 'general';
 
     return 'college_member';
 };

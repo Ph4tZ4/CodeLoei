@@ -61,6 +61,7 @@ export const en = {
     'sidebar.settings': 'Settings',
     'sidebar.help': 'Help',
     'sidebar.feedback': 'Send Feedback',
+    'sidebar.contact_admin': 'Contact Admin',
     'sidebar.admin_logout': 'Admin Logout',
     'sidebar.logged_in_as': 'Logged in as',
     'sidebar.guest': 'Guest',
@@ -378,6 +379,18 @@ export const en = {
     'contact.sending': 'Processing...',
     'contact.sent': 'Message Sent',
     'contact.error': 'Something went wrong. Please try again.',
+    'contact.info.title': 'Contact Information',
+    'contact.info.address': 'Address',
+    'contact.info.address_value': 'Information Technology Department, Loei Technical College',
+    'contact.info.phone': 'Phone',
+    'contact.info.phone_value': '099-073-2424',
+    'contact.info.email_official': 'Official Email',
+    'contact.info.email_value': 'codeloeiofficial@gmail.com',
+    'contact.info.hours': 'Office Hours',
+    'contact.info.hours_value': 'Mon - Fri: 08:30 - 16:30',
 
-
+    // Admin Inbox
+    'admin.inbox.title': 'Admin Inbox',
+    'admin.inbox.subtitle': 'Manage contact messages',
+    'admin.inbox.search_placeholder': 'Search by subject or student name...',
 };

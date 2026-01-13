@@ -21,6 +21,7 @@ import Settings from './pages/Settings';
 import { Help, Feedback } from './pages/Support';
 import About from './pages/About';
 import History from './pages/History';
+import ContactAdmin from './pages/ContactAdmin';
 import NewsDetail from './pages/NewsDetail';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -29,6 +30,7 @@ import ManageUsers from './pages/admin/ManageUsers';
 import ManageNews from './pages/admin/ManageNews';
 import AdminRepoDetail from './pages/admin/AdminRepoDetail';
 import AdminUserDetail from './pages/admin/AdminUserDetail';
+import AdminInbox from './pages/admin/AdminInbox';
 
 // Components
 import ProtectedAdminRoute from './components/ProtectedAdminRoute';
@@ -193,6 +195,7 @@ function App() {
                   <Route path="/admin/users" element={<ManageUsers />} />
                   <Route path="/admin/users/:id" element={<AdminUserDetail />} />
                   <Route path="/admin/news" element={<ManageNews />} />
+                  <Route path="/admin/inbox" element={<AdminInbox />} />
                 </Route>
               </Route>
 
@@ -219,6 +222,7 @@ function App() {
                     <Route path="feedback" element={<Feedback />} />
                     <Route path="history" element={<History />} />
                     <Route path="about" element={<About />} />
+                    <Route path="contact" element={<ContactAdmin />} />
                   </>
                 ) : (
                   <>
