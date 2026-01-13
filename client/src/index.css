@@ -1,0 +1,139 @@
+@import "tailwindcss";
+
+@theme {
+  --color-black: var(--color-bg-primary);
+  --color-white: var(--color-text-primary);
+
+  /* Refined Colors */
+  --color-text-muted: var(--color-text-muted);
+  --color-absolute-white: var(--color-absolute-white);
+  --color-absolute-black: var(--color-absolute-black);
+
+  /* Additional color mappings for common dark backgrounds */
+  --color-zinc-950: var(--color-bg-secondary);
+  --color-zinc-900: var(--color-bg-tertiary);
+  --color-zinc-800: var(--color-border-primary);
+}
+
+:root {
+  /* Default (Dark Mode) */
+  --color-bg-primary: #000000;
+  --color-text-primary: #ffffff;
+  --color-bg-secondary: #09090b;
+  /* zinc-950 */
+  --color-bg-tertiary: #18181b;
+  /* zinc-900 */
+  --color-border-primary: #27272a;
+  /* zinc-800 */
+
+  /* Refined Colors */
+  --color-text-muted: #d4d4d8;
+  /* gray-300 */
+  --color-absolute-white: #ffffff;
+  --color-absolute-black: #000000;
+
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: var(--color-bg-primary);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Light Mode Overrides */
+.light {
+  --color-bg-primary: #ffffff;
+  --color-text-primary: #000000;
+  --color-bg-secondary: #f4f4f5;
+  /* zinc-100 */
+  --color-bg-tertiary: #e4e4e7;
+  /* zinc-200 */
+  --color-border-primary: #d4d4d8;
+  /* zinc-300 */
+
+  /* Refined Colors */
+  --color-text-muted: #27272a;
+  /* zinc-800 - High contrast for light mode */
+
+  color-scheme: light;
+  color: #000000;
+  background-color: var(--color-bg-primary);
+}
+
+/* Force Dark Mode Utility */
+.dark-force {
+  --color-bg-primary: #000000;
+  --color-text-primary: #ffffff;
+  --color-bg-secondary: #09090b;
+  --color-bg-tertiary: #18181b;
+  --color-border-primary: #27272a;
+
+  --color-text-muted: #d4d4d8;
+  --color-absolute-white: #ffffff;
+  --color-absolute-black: #000000;
+
+  color-scheme: dark;
+  color: rgba(255, 255, 255, 0.87);
+  /* background-color: var(--color-bg-primary); */
+}
+
+/* Animations from User Code */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.animate-modal-in {
+  animation: modalIn 0.3s ease-out forwards;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.light .custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+.light .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+}
