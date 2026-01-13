@@ -61,7 +61,9 @@ app.use('/api/contact', require('./routes/contactRoutes'));
 // Database Connection
 const connectDB = async () => {
     try {
-        const conn = await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/it-student-repo');
+        const conn = await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/code_loei_db', {
+            dbName: 'code_loei_db' // Force database name to be code_loei_db
+        });
         console.log(`MongoDB Connected: ${conn.connection.host}`);
         console.log(`Database Name: ${conn.connection.name}`); // Log explicit DB name
     } catch (err) {
