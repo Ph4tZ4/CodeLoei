@@ -21,6 +21,7 @@ exports.register = async (req, res) => {
             email,
             password,
             displayName: displayName || email.split('@')[0],
+            username: email.split('@')[0] + Math.floor(1000 + Math.random() * 9000), // Append random 4 digits to ensure uniqueness
             userType
         };
 
@@ -193,7 +194,7 @@ exports.googleLogin = async (req, res) => {
                 photoURL: picture,
                 googleId: sub,
                 userType,
-                username: email.split('@')[0] // Fallback username
+                username: email.split('@')[0] + Math.floor(1000 + Math.random() * 9000) // Fallback username with random suffix
             };
 
             if (userType === 'college_member') {
