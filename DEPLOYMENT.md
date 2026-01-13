@@ -25,7 +25,7 @@
 
 3.  **ตั้งค่า Environment Variables**
     *   เลื่อนลงไปที่หัวข้อ "Environment Variables" แล้วกด Add Environment Variable:
-        *   `MONGO_URI`: ใส่ Connection String ของ MongoDB (เช่น `mongodb+srv://...`)
+        *   `MONGO_URI`: ใส่ Connection String ของ MongoDB (อย่าลืมใส่ชื่อ Database ที่ต้องการต่อท้าย เช่น `...:27018/code_loei_db?authSource=admin`)
         *   `NODE_ENV`: `production`
         *   `CLIENT_URL`: URL ของหน้าเว็บ Client ที่จะ Deploy บน Vercel (เช่น `https://your-app.vercel.app`)
             *   *หมายเหตุ: เนื่องจากเรายังไม่ได้ Deploy Client ในขั้นตอนนี้ คุณสามารถเว้นว่างไว้ก่อน หรือใส่ค่าชั่วคราว แล้วค่อยกลับมาแก้หลังจากทำส่วนที่ 2 เสร็จ*
