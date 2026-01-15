@@ -82,7 +82,13 @@ const AdminRepoDetail = () => {
             if (!id) return;
             try {
                 const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
-                const projData = await api.get(`/projects/${id}`, token || undefined);
+
+                // Parallelize fetching
+                const projectPromise = api.get(`/projects/${id}`, token || undefined);
+                const filesPromise = api.getProjectFiles(id);
+
+                const [projData, filesData] = await Promise.all([projectPromise, filesPromise]);
+
                 setProject(projData);
                 setEditValues({
                     name: projData.name,
@@ -93,7 +99,6 @@ const AdminRepoDetail = () => {
 
                 // Removed pin logic for admin
 
-                const filesData = await api.getProjectFiles(id);
                 setFiles(filesData);
 
                 const readme = filesData.find((f: any) => f.name.toLowerCase() === 'readme.md');

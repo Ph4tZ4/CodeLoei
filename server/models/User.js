@@ -53,15 +53,18 @@ const UserSchema = new mongoose.Schema({
     }],
     createdAt: {
         type: Date,
-        default: Date.now
+        default: Date.now,
+        index: true // Index for "New Users" stats
     },
     lastActiveAt: {
         type: Date,
-        default: Date.now
+        default: Date.now,
+        index: true // Index for "Online Users" stats
     },
     isBanned: {
         type: Boolean,
-        default: false
+        default: false,
+        index: true // Index for filtering banned users
     },
     bannedUntil: {
         type: Date

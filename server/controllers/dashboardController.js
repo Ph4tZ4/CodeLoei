@@ -7,71 +7,56 @@ exports.getDashboardStats = async (req, res) => {
         const userId = req.user.id; // Assumes auth middleware populates req.user
 
         // 1. Get all projects owned by the user
-        const projects = await Project.find({ ownerId: userId });
 
-        // 2. Calculate Totals
+
+        // RE-EVALUATING: 'projects' is needed for 'projectIds' which is needed for 'statsData' and 'recentActivities'.
+        // So we MUST fetch projects first.
+        // BUT 'recentActivities' query can be improved.
+
+        // Let's refactor to:
+        // 1. Fetch Projects
+        const projectsList = await Project.find({ ownerId: userId });
+        const projectIds = projectsList.map(p => p._id);
+
+        // 2. Parallelize: Total Calcs (CPU), Graph Data (DB), Recent Activity (DB)
+        const range = req.query.range || '7d';
+        const now = new Date();
+        let startDate = new Date();
+        let groupByFormat = "%Y-%m-%d";
+        let points = 7;
+
+        if (range === '30d') { startDate.setDate(now.getDate() - 29); points = 30; }
+        else if (range === '1y') { startDate.setMonth(0, 1); startDate.setHours(0, 0, 0, 0); groupByFormat = "%Y-%m"; points = 12; }
+        else { startDate.setDate(now.getDate() - 6); }
+        startDate.setHours(0, 0, 0, 0);
+
+        const History = require('../models/History');
+        const ActivityLog = require('../models/ActivityLog');
+
+        const [statsData, recentActivities] = await Promise.all([
+            // Graph Data
+            History.aggregate([
+                { $match: { project: { $in: projectIds }, viewedAt: { $gte: startDate } } },
+                { $group: { _id: { $dateToString: { format: groupByFormat, date: "$viewedAt" } }, count: { $sum: 1 } } },
+                { $sort: { _id: 1 } }
+            ]),
+            // Recent Activity
+            ActivityLog.find({ project: { $in: projectIds }, user: { $ne: userId } })
+                .sort({ createdAt: -1 })
+                .limit(8)
+                .populate('project', 'name')
+                .populate('user', 'displayName')
+        ]);
+
+        // Calculate Totals form projectList (CPU mostly)
         let totalViews = 0;
         let totalStars = 0;
         let totalDownloads = 0;
-
-        projects.forEach(project => {
+        projectsList.forEach(project => {
             totalViews += project.views || 0;
             totalStars += project.stars || 0;
             totalDownloads += project.downloadCount || 0;
         });
-
-        // distinct project IDs owned by user
-        const projectIds = projects.map(p => p._id);
-
-        // 3. Visitor Statistics and Totals based on Range
-        const range = req.query.range || '7d';
-        const now = new Date();
-        let startDate = new Date();
-        let groupByFormat = "%Y-%m-%d"; // default daily
-        let points = 7;
-
-        if (range === '30d') {
-            startDate.setDate(now.getDate() - 29);
-            points = 30;
-        } else if (range === '1y') {
-            startDate.setMonth(0, 1); // Jan 1st of current year
-            startDate.setHours(0, 0, 0, 0);
-            groupByFormat = "%Y-%m"; // monthly
-            points = 12;
-        } else {
-            // 7d default
-            startDate.setDate(now.getDate() - 6);
-        }
-        startDate.setHours(0, 0, 0, 0);
-
-        // Calculate Totals (Respecting range for Views, but Downloads/Stars are usually total lifetime in simple apps, 
-        // but if we want "Stats for this period", we'd need history for them too. 
-        // For now, let's keep totals as LIFETIME for simpler UX unless specified, 
-        // OR filtering views by range makes sense for the "Traffic Graph".
-        // Let's filter the GRAPH data by range. The "Overview Cards" usually imply "Current State" or "Growth in period".
-        // User asked to "choose filter 7 days/30 days...", usually implies the whole dash adjusts.
-        // HOWEVER, `Project` model stores simple `views`, `stars` counters (Lifetime).
-        // We cannot filter lifetime counters by date without a history log for every action.
-        // We ONLY have `History` for VIEWS.
-        // So: Graph = Filtered Views. Cards = Total Lifetime (maybe growth is calculated? but we mocked growth).
-        // Let's focus on the Graph primarily as that's the "Statistics".
-
-        // Aggregation for Graph
-        const statsData = await History.aggregate([
-            {
-                $match: {
-                    project: { $in: projectIds },
-                    viewedAt: { $gte: startDate }
-                }
-            },
-            {
-                $group: {
-                    _id: { $dateToString: { format: groupByFormat, date: "$viewedAt" } },
-                    count: { $sum: 1 }
-                }
-            },
-            { $sort: { _id: 1 } }
-        ]);
 
         // Fill gaps
         const chartData = [];
@@ -104,16 +89,9 @@ exports.getDashboardStats = async (req, res) => {
         // Find activities affecting my projects OR activities I did
         const ActivityLog = require('../models/ActivityLog');
 
-        const recentActivities = await ActivityLog.find({
-            project: { $in: projectIds },
-            user: { $ne: userId }
-        })
-            .sort({ createdAt: -1 })
-            .limit(8)
-            .populate('project', 'name')
-            .populate('user', 'displayName'); // Actor name
+        // (Combined with Promise.all above)
 
-        const activities = recentActivities.map(log => {
+        const activities = recentLogs.map(log => {
             let text = '';
             let type = 'view';
             const actorName = log.user._id.toString() === userId ? 'You' : (log.user.displayName || 'Someone');
@@ -170,7 +148,7 @@ exports.getDashboardStats = async (req, res) => {
             chartData,
             labels, // Send labels to frontend
             activities,
-            topProjects: projects.sort((a, b) => b.views - a.views).slice(0, 5)
+            topProjects: projectsList.sort((a, b) => b.views - a.views).slice(0, 5)
         });
 
     } catch (err) {
@@ -186,60 +164,30 @@ exports.getAdminStats = async (req, res) => {
 
         // 1. Online Users (Active in last 5 minutes)
         const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-        const onlineUsers = await User.countDocuments({ lastActiveAt: { $gte: fiveMinutesAgo } });
 
-        // 2. Total Projects
-        const totalProjects = await Project.countDocuments();
-
-        // 3. Server Status (Mock connection check)
-        // If we are here, DB is connected.
-        const serverStatus = 'Healthy';
-
-        // 4. Total Views (Global)
-        // We can sum all project views
-        const projects = await Project.find().select('views');
-        const totalViews = projects.reduce((acc, p) => acc + (p.views || 0), 0);
-
-        // 5. Traffic Data (Last 7 Days) from History
+        // 5. Traffic Data Preparation
         const History = require('../models/History');
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
         sevenDaysAgo.setHours(0, 0, 0, 0);
 
-        const trafficStats = await History.aggregate([
-            {
-                $match: {
-                    viewedAt: { $gte: sevenDaysAgo }
-                }
-            },
-            {
-                $group: {
-                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$viewedAt" } },
-                    count: { $sum: 1 }
-                }
-            }
+        // 6. Recent Activity Preparation
+        const ActivityLog = require('../models/ActivityLog');
+
+        // Parallel execution
+        const [onlineUsers, totalProjects, totalViewsData, trafficStats, recentActivities] = await Promise.all([
+            User.countDocuments({ lastActiveAt: { $gte: fiveMinutesAgo } }),
+            Project.countDocuments(),
+            Project.aggregate([{ $group: { _id: null, total: { $sum: "$views" } } }]), // Faster sum using aggregate
+            History.aggregate([
+                { $match: { viewedAt: { $gte: sevenDaysAgo } } },
+                { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$viewedAt" } }, count: { $sum: 1 } } }
+            ]),
+            ActivityLog.find().sort({ createdAt: -1 }).limit(5).populate('user', 'email')
         ]);
 
-        const trafficData = [];
-        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-        for (let i = 6; i >= 0; i--) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            const key = d.toISOString().slice(0, 10);
-            const found = trafficStats.find(t => t._id === key);
-            trafficData.push({
-                day: days[d.getDay()],
-                visits: found ? found.count : 0
-            });
-        }
-
-        // 6. Recent Activity (From ActivityLog)
-        const ActivityLog = require('../models/ActivityLog');
-        const recentActivities = await ActivityLog.find()
-            .sort({ createdAt: -1 })
-            .limit(5)
-            .populate('user', 'email');
+        const totalViews = totalViewsData.length > 0 ? totalViewsData[0].total : 0; // fallback if no projects
+        const serverStatus = 'Healthy';
 
         const activities = recentActivities.map(log => {
             let title = 'กิจกรรม';

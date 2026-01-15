@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Folder, Loader2 } from 'lucide-react';
 import ProjectCard from '../components/ProjectCard';
 import type { Project } from '../types';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -12,21 +12,17 @@ const MyProjects = () => {
     const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const context = useOutletContext<any>() || {}; // Fallback empty object
+    const user = context.user;
+
     useEffect(() => {
-        const fetchData = async () => {
+        const fetchProjects = async () => {
             try {
                 const token = localStorage.getItem('token');
-                if (!token) {
-                    navigate('/'); // Should be protected by Route anyway
-                    return;
-                }
 
-                // Get User first
-                const userData = await api.get('/auth/me', token);
-
-                // Then get projects by user
-                if (userData && userData._id) {
-                    const projectData = await api.getProjectsByUser(userData._id, token);
+                // Use context user if available
+                if (user && user._id) {
+                    const projectData = await api.getProjectsByUser(user._id, token || undefined);
                     setProjects(projectData);
                 }
             } catch (err) {
@@ -36,8 +32,16 @@ const MyProjects = () => {
             }
         };
 
-        fetchData();
-    }, [navigate]);
+        if (user) {
+            fetchProjects();
+        } else {
+            // If user context not ready (edge case), might need to wait or it matches <Route> logic
+            // But Route protects it, so user should be there.
+            // Just in case, if context is missing but we have token, maybe we could fallback, 
+            // but App.tsx ensures 'user' is loaded before rendering protected routes.
+            // So we should be safe.
+        }
+    }, [user, navigate]);
 
     if (loading) {
         return (

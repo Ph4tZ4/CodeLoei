@@ -4,12 +4,21 @@ const User = require('../models/User');
 const ActivityLog = require('../models/ActivityLog');
 
 // Get all projects (Public only)
+// Get all projects (Public only)
 exports.getProjects = async (req, res) => {
     try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const skip = (page - 1) * limit;
+
         // Only show public projects in the main feed
         const projects = await Project.find({ visibility: 'public' })
             .populate('ownerId', 'displayName photoURL isBanned')
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean(); // Use lean for faster reads
+
         res.json(projects);
     } catch (err) {
         console.error(err.message);
@@ -34,7 +43,8 @@ exports.getProjectsByUser = async (req, res) => {
 
         const projects = await Project.find(query)
             .populate('ownerId', 'displayName photoURL isBanned')
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .lean(); // Faster read
 
         res.json(projects);
     } catch (err) {
@@ -60,8 +70,8 @@ exports.getProject = async (req, res) => {
         }
 
         // Increment views (moved here to avoid incrementing on denied access)
-        project.views += 1;
-        await project.save();
+        await Project.updateOne({ _id: project._id }, { $inc: { views: 1 } });
+        project.views += 1; // Update local object to return correct count
 
         res.json(project);
     } catch (err) {

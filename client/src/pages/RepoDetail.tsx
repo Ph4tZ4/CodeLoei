@@ -82,7 +82,18 @@ const RepoDetail = () => {
             if (!id) return;
             try {
                 const token = localStorage.getItem('token');
-                const projData = await api.get(`/projects/${id}`, token || undefined);
+
+                // Parallelize requests
+                const projectPromise = api.get(`/projects/${id}`, token || undefined);
+                const filesPromise = api.getProjectFiles(id);
+
+                // Record view in background if token exists
+                if (token) {
+                    api.recordProjectView(id, token).catch(err => console.error("Failed to record view", err));
+                }
+
+                const [projData, filesData] = await Promise.all([projectPromise, filesPromise]);
+
                 setProject(projData);
                 setEditValues({
                     name: projData.name,
@@ -97,7 +108,6 @@ const RepoDetail = () => {
                     setIsPinned(true);
                 }
 
-                const filesData = await api.getProjectFiles(id);
                 setFiles(filesData);
 
                 const readme = filesData.find((f: any) => f.name.toLowerCase() === 'readme.md');
@@ -108,7 +118,6 @@ const RepoDetail = () => {
                     } catch (err) { console.error(err); }
                 }
 
-                if (token) await api.recordProjectView(id, token);
             } catch (err) {
                 console.error("Failed to fetch project data", err);
             } finally {
