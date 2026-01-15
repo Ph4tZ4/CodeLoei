@@ -1,19 +1,13 @@
 const Project = require('../models/Project');
 const History = require('../models/History');
 const mongoose = require('mongoose');
+const User = require('../models/User');
+const ActivityLog = require('../models/ActivityLog');
 
 exports.getDashboardStats = async (req, res) => {
     try {
-        const userId = req.user.id; // Assumes auth middleware populates req.user
+        const userId = req.user.id;
 
-        // 1. Get all projects owned by the user
-
-
-        // RE-EVALUATING: 'projects' is needed for 'projectIds' which is needed for 'statsData' and 'recentActivities'.
-        // So we MUST fetch projects first.
-        // BUT 'recentActivities' query can be improved.
-
-        // Let's refactor to:
         // 1. Fetch Projects
         const projectsList = await Project.find({ ownerId: userId });
         const projectIds = projectsList.map(p => p._id);
@@ -29,9 +23,6 @@ exports.getDashboardStats = async (req, res) => {
         else if (range === '1y') { startDate.setMonth(0, 1); startDate.setHours(0, 0, 0, 0); groupByFormat = "%Y-%m"; points = 12; }
         else { startDate.setDate(now.getDate() - 6); }
         startDate.setHours(0, 0, 0, 0);
-
-        const History = require('../models/History');
-        const ActivityLog = require('../models/ActivityLog');
 
         const [statsData, recentActivities] = await Promise.all([
             // Graph Data
@@ -83,24 +74,16 @@ exports.getDashboardStats = async (req, res) => {
             }
         }
 
-        // 4. Recent Activity (Simplified)
-        // Combine recent views on my projects and recent updates by me
-        // 4. Recent Activity (Expanded to include all activity types)
-        // Find activities affecting my projects OR activities I did
-        const ActivityLog = require('../models/ActivityLog');
-
-        // (Combined with Promise.all above)
-
-        const activities = recentLogs.map(log => {
+        const activities = recentActivities.map(log => {
             let text = '';
             let type = 'view';
-            const actorName = log.user._id.toString() === userId ? 'You' : (log.user.displayName || 'Someone');
+            const actorName = (log.user && log.user._id.toString() === userId) ? 'You' : (log.user ? log.user.displayName : 'Someone');
             const projectName = log.project ? log.project.name : 'Unknown Project';
 
             switch (log.action) {
                 case 'create_project':
                     text = `${actorName} created project '${projectName}'`;
-                    type = 'create'; // map to frontend type checks if needed
+                    type = 'create';
                     break;
                 case 'view':
                     text = `${actorName} viewed '${projectName}'`;
@@ -131,22 +114,17 @@ exports.getDashboardStats = async (req, res) => {
             };
         });
 
-        // 5. Growth (Placeholder / Simple Comparison)
-        // For real growth, we'd need snapshots. For now, we return 0% or hardcoded small randoms for "feeling" if no data, 
-        // OR purely return +0% if we want to be strict.
-        // Let's stick to +0% to be accurate to available data.
-
         res.json({
             totalViews,
             totalStars,
             totalDownloads,
-            profileVisits: 0, // Not tracked yet
+            profileVisits: 0,
             viewsGrowth: "+0%",
             starsGrowth: "+0%",
             downloadsGrowth: "+0%",
             visitsGrowth: "+0%",
             chartData,
-            labels, // Send labels to frontend
+            labels,
             activities,
             topProjects: projectsList.sort((a, b) => b.views - a.views).slice(0, 5)
         });
@@ -159,23 +137,16 @@ exports.getDashboardStats = async (req, res) => {
 
 exports.getAdminStats = async (req, res) => {
     try {
-        const User = require('../models/User'); // Lazy load
-        const Project = require('../models/Project');
-
         // 1. Online Users (Active in last 5 minutes)
         const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
 
         // 5. Traffic Data Preparation
-        const History = require('../models/History');
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
         sevenDaysAgo.setHours(0, 0, 0, 0);
 
-        // 6. Recent Activity Preparation
-        const ActivityLog = require('../models/ActivityLog');
-
         // Parallel execution
-        const [onlineUsers, totalProjects, totalViewsData, trafficStats, recentActivities] = await Promise.all([
+        const [onlineUsers, totalProjects, totalViewsData, trafficData, recentActivities] = await Promise.all([
             User.countDocuments({ lastActiveAt: { $gte: fiveMinutesAgo } }),
             Project.countDocuments(),
             Project.aggregate([{ $group: { _id: null, total: { $sum: "$views" } } }]), // Faster sum using aggregate
@@ -186,7 +157,7 @@ exports.getAdminStats = async (req, res) => {
             ActivityLog.find().sort({ createdAt: -1 }).limit(5).populate('user', 'email')
         ]);
 
-        const totalViews = totalViewsData.length > 0 ? totalViewsData[0].total : 0; // fallback if no projects
+        const totalViews = totalViewsData.length > 0 ? totalViewsData[0].total : 0;
         const serverStatus = 'Healthy';
 
         const activities = recentActivities.map(log => {
