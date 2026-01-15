@@ -91,6 +91,9 @@ export const api = {
     async getAdminDashboardStats(token: string) {
         return this.get('/dashboard/admin-stats', token);
     },
+    async getProjectStats(token: string) {
+        return this.get('/projects/stats', token);
+    },
 
     // --- News ---
     async getNews() {

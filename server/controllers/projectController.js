@@ -118,7 +118,7 @@ exports.getPopularProjects = async (req, res) => {
 // Create a project
 exports.createProject = async (req, res) => {
     try {
-        const { name, description, language, visibility, license, tags } = req.body;
+        const { name, description, language, visibility, license, tags, videoUrl } = req.body;
 
         // Check if user is authorized to create projects (only college members)
         if (req.user.userType !== 'college_member') {
@@ -132,6 +132,9 @@ exports.createProject = async (req, res) => {
             visibility,
             license,
             tags,
+            license,
+            tags,
+            videoUrl,
             ownerId: req.user.id
         });
 
@@ -197,7 +200,7 @@ exports.createProject = async (req, res) => {
 // Update a project
 exports.updateProject = async (req, res) => {
     try {
-        const { name, description, language, visibility, license, tags } = req.body;
+        const { name, description, language, visibility, license, tags, videoUrl } = req.body;
 
         let project = await Project.findById(req.params.id);
         if (!project) return res.status(404).json({ msg: 'Project not found' });
@@ -209,7 +212,7 @@ exports.updateProject = async (req, res) => {
 
         project = await Project.findByIdAndUpdate(
             req.params.id,
-            { name, description, language, visibility, license, tags },
+            { name, description, language, visibility, license, tags, videoUrl },
             { new: true }
         );
 
@@ -412,6 +415,75 @@ exports.downloadProject = async (req, res) => {
         res.json({ msg: 'Download started', downloadCount: project.downloadCount, files });
     } catch (err) {
         console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+// Get aggregated stats for Admin Dashboard
+exports.getProjectStats = async (req, res) => {
+    try {
+        // 1. Language Distribution
+        const langStats = await Project.aggregate([
+            {
+                $group: {
+                    _id: "$language",
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { count: -1 } }
+        ]);
+
+        // 2. Visibility Distribution
+        const visibilityStats = await Project.aggregate([
+            {
+                $group: {
+                    _id: "$visibility",
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        // 3. Top Projects by Views
+        const topViewed = await Project.find()
+            .sort({ views: -1 })
+            .limit(5)
+            .select('name views ownerId')
+            .populate('ownerId', 'displayName');
+
+        // 4. Top Projects by Stars
+        const topStarred = await Project.find()
+            .sort({ stars: -1 })
+            .limit(5)
+            .select('name stars ownerId')
+            .populate('ownerId', 'displayName');
+
+        // 5. Total Count
+        const totalProjects = await Project.countDocuments();
+
+        // 6. Popular Tags
+        const popularTags = await Project.aggregate([
+            { $unwind: "$tags" },
+            {
+                $group: {
+                    _id: "$tags",
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { count: -1 } },
+            { $limit: 10 }
+        ]);
+
+        res.json({
+            languageDistribution: langStats.map(s => ({ name: s._id || 'Unknown', value: s.count })),
+            visibilityDistribution: visibilityStats.map(s => ({ name: s._id, value: s.count })),
+            topViewed,
+            topStarred,
+            totalProjects,
+            popularTags: popularTags.map(t => ({ name: t._id, value: t.count }))
+        });
+
+    } catch (err) {
+        console.error("Stats Error:", err);
         res.status(500).send('Server Error');
     }
 };

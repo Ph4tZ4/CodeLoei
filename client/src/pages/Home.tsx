@@ -1,5 +1,6 @@
 import { TrendingUp, Folder } from 'lucide-react';
 import ProjectCard from '../components/ProjectCard';
+import NewsPopup from '../components/NewsPopup';
 import type { Project } from '../types';
 import { useNavigate } from 'react-router-dom';
 
@@ -34,6 +35,7 @@ const Home = ({ projects: allProjects }: { projects: Project[] }) => {
 
     return (
         <div className="animate-fade-in">
+            <NewsPopup />
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div>
                     <h2 className="text-2xl font-bold flex items-center gap-2">

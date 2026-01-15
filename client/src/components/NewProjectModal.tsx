@@ -26,6 +26,7 @@ const NewProjectModal = ({ isOpen, onClose, user }: NewProjectModalProps) => {
     const [gitignore, setGitignore] = useState('None');
     const [license, setLicense] = useState('None');
     const [tags, setTags] = useState('');
+    const [videoUrl, setVideoUrl] = useState('');
     const [loading, setLoading] = useState(false);
 
     const isNameValid = name.length > 0 && /^[a-zA-Z0-9-_]+$/.test(name);
@@ -46,6 +47,7 @@ const NewProjectModal = ({ isOpen, onClose, user }: NewProjectModalProps) => {
                 tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
                 initReadme,
                 gitignore: gitignore !== 'None' ? gitignore : null,
+                videoUrl: videoUrl || null,
                 // license is already passed above
             }, token || undefined);
 
@@ -277,6 +279,17 @@ const NewProjectModal = ({ isOpen, onClose, user }: NewProjectModalProps) => {
                                 />
                             </div>
                         </div>
+                    </div>
+
+                    {/* Video URL */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-1.5">{t('new_project.video_url')} <span className="text-zinc-600 text-xs">{t('new_project.optional')}</span></label>
+                        <input
+                            value={videoUrl}
+                            onChange={(e) => setVideoUrl(e.target.value)}
+                            className="w-full bg-black border border-zinc-800 rounded-lg px-3 py-2.5 text-white focus:border-zinc-600 outline-none transition-all"
+                            placeholder="https://www.youtube.com/watch?v=..."
+                        />
                     </div>
 
                     <div className="flex justify-end gap-3 pt-6 border-t border-zinc-800">

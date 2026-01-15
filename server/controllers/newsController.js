@@ -121,14 +121,24 @@ exports.createNews = async (req, res) => {
             return res.status(403).json({ msg: 'Access denied' });
         }
 
-        const { title, category, categoryColor, description, content } = req.body;
+        const { title, category, categoryColor, description, content, isPopup, popupDuration } = req.body;
 
         const newNews = new News({
             title,
             category,
             categoryColor,
             description,
-            content
+            content,
+            isPopup,
+            popupDuration,
+            popupExpiresAt: (() => {
+                if (isPopup && popupDuration > 0) {
+                    const d = new Date();
+                    d.setDate(d.getDate() + parseInt(popupDuration));
+                    return d;
+                }
+                return null;
+            })()
         });
 
         const news = await newNews.save();
@@ -149,16 +159,30 @@ exports.updateNews = async (req, res) => {
             return res.status(403).json({ msg: 'Access denied' });
         }
 
-        const { title, category, categoryColor, description, content } = req.body;
+
+        const { title, category, categoryColor, description, content, isPopup, popupDuration } = req.body;
+
 
         let news = await News.findById(req.params.id);
         if (!news) {
             return res.status(404).json({ msg: 'News not found' });
         }
 
+        let popupExpiresAt = news.popupExpiresAt;
+        if (isPopup !== undefined && popupDuration !== undefined) {
+            if (isPopup && popupDuration > 0) {
+                const startDate = news.createdAt || new Date();
+                const d = new Date(startDate);
+                d.setDate(d.getDate() + parseInt(popupDuration));
+                popupExpiresAt = d;
+            } else {
+                popupExpiresAt = null;
+            }
+        }
+
         news = await News.findByIdAndUpdate(
             req.params.id,
-            { title, category, categoryColor, description, content },
+            { title, category, categoryColor, description, content, isPopup, popupDuration, popupExpiresAt },
             { new: true }
         );
 

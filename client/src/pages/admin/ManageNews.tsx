@@ -11,6 +11,8 @@ interface NewsFormData {
     categoryColor: string;
     description: string;
     content: string; // HTML
+    isPopup: boolean;
+    popupDuration: number;
 }
 
 const initialForm: NewsFormData = {
@@ -18,7 +20,9 @@ const initialForm: NewsFormData = {
     category: 'ACADEMIC',
     categoryColor: 'text-blue-400',
     description: '',
-    content: ''
+    content: '',
+    isPopup: false,
+    popupDuration: 7
 };
 
 const CATEGORY_OPTIONS = [
@@ -81,7 +85,9 @@ export default function ManageNews() {
             category: news.category,
             categoryColor: news.categoryColor || 'text-blue-400',
             description: news.description,
-            content: news.content
+            content: news.content,
+            isPopup: news.isPopup || false,
+            popupDuration: news.popupDuration || 0
         });
         setEditingId(news._id);
         setIsModalOpen(true);
@@ -231,6 +237,37 @@ export default function ManageNews() {
                                                     options={COLOR_OPTIONS}
                                                 />
                                             </div>
+                                        </div>
+
+                                        <div className="bg-zinc-800/50 p-4 rounded-lg border border-zinc-800 space-y-4">
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="checkbox"
+                                                    id="isPopup"
+                                                    checked={formData.isPopup}
+                                                    onChange={e => setFormData({ ...formData, isPopup: e.target.checked })}
+                                                    className="w-4 h-4 rounded border-zinc-700 bg-black text-blue-600 focus:ring-blue-600 focus:ring-offset-zinc-900"
+                                                />
+                                                <label htmlFor="isPopup" className="text-sm font-medium text-zinc-300 select-none cursor-pointer">
+                                                    แสดงเป็น Pop-up เมื่อเข้าเว็บไซต์
+                                                </label>
+                                            </div>
+
+                                            {formData.isPopup && (
+                                                <div>
+                                                    <label className="block text-sm font-medium text-zinc-400 mb-1">ระยะเวลาแสดงผล (นับจากวันที่สร้าง)</label>
+                                                    <CustomSelect
+                                                        value={formData.popupDuration.toString()}
+                                                        onChange={val => setFormData({ ...formData, popupDuration: parseInt(val) })}
+                                                        options={[
+                                                            { value: '7', label: '7 วัน' },
+                                                            { value: '15', label: '15 วัน' },
+                                                            { value: '30', label: '30 วัน' },
+                                                            { value: '0', label: 'จนกว่าจะปิด (ตลอดไป)' },
+                                                        ]}
+                                                    />
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div>

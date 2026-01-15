@@ -418,6 +418,7 @@ const Landing = ({ onLogin, handleLogin }: LandingProps) => {
                 <IntroOverlay onComplete={handleIntroComplete} />
             )}
 
+
             <TechBackground />
 
             {/* Wrap Content to potentially hide it or just layer it behind */}

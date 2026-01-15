@@ -20,6 +20,7 @@ const EditProjectModal = ({ isOpen, onClose, project, onUpdate, onDelete }: Edit
     const [visibility, setVisibility] = useState<'public' | 'private'>(project?.visibility || 'public');
     const [license, setLicense] = useState(project?.license || 'None');
     const [tags, setTags] = useState(project?.tags ? project.tags.join(', ') : '');
+    const [videoUrl, setVideoUrl] = useState(project?.videoUrl || '');
     const [loading, setLoading] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
@@ -33,6 +34,7 @@ const EditProjectModal = ({ isOpen, onClose, project, onUpdate, onDelete }: Edit
             setVisibility(project.visibility);
             setLicense(project.license || 'None');
             setTags(project.tags ? project.tags.join(', ') : '');
+            setVideoUrl(project.videoUrl || '');
         }
     }, [project]);
 
@@ -51,6 +53,7 @@ const EditProjectModal = ({ isOpen, onClose, project, onUpdate, onDelete }: Edit
                 visibility,
                 license: license !== 'None' ? license : null,
                 tags: tags.split(',').map((t: string) => t.trim()).filter((t: string) => t.length > 0),
+                videoUrl: videoUrl || null
             }, token || undefined);
 
             onUpdate(res);
@@ -162,6 +165,17 @@ const EditProjectModal = ({ isOpen, onClose, project, onUpdate, onDelete }: Edit
                                 value={tags}
                                 onChange={(e) => setTags(e.target.value)}
                                 className="w-full bg-black border border-zinc-800 rounded-lg px-3 py-2.5 text-white focus:border-white outline-none transition-all"
+                            />
+                        </div>
+
+                        {/* Video URL */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-400 mb-1.5">Video URL</label>
+                            <input
+                                value={videoUrl}
+                                onChange={(e) => setVideoUrl(e.target.value)}
+                                className="w-full bg-black border border-zinc-800 rounded-lg px-3 py-2.5 text-white focus:border-white outline-none transition-all"
+                                placeholder="https://www.youtube.com/watch?v=..."
                             />
                         </div>
 

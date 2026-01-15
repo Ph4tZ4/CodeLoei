@@ -357,6 +357,7 @@ export const th = {
     'new_project.no_license': 'ไม่มี License',
     'new_project.main_language': 'ภาษาหลัก',
     'new_project.tags': 'หัวข้อ (Tags)',
+    'new_project.video_url': 'ลิงก์วิดีโอ (YouTube/Vimeo)',
     'new_project.cancel': 'ยกเลิก',
     'new_project.create': 'สร้าง Repository',
 

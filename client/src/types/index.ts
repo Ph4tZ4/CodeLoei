@@ -15,6 +15,7 @@ export interface Project {
         isBanned?: boolean;
     } | string; // Populated or ID
     visibility: 'public' | 'private';
+    videoUrl?: string; // URL to video (YouTube/Vimeo)
     license?: string;
     tags?: string[];
     starredBy?: string[]; // Array of user IDs
@@ -59,4 +60,7 @@ export interface News {
     description: string;
     content: string;
     createdAt: string;
+    isPopup?: boolean;
+    popupDuration?: number;
+    popupExpiresAt?: string;
 }

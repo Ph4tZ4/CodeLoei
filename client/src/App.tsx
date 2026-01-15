@@ -31,6 +31,7 @@ import ManageNews from './pages/admin/ManageNews';
 import AdminRepoDetail from './pages/admin/AdminRepoDetail';
 import AdminUserDetail from './pages/admin/AdminUserDetail';
 import AdminInbox from './pages/admin/AdminInbox';
+import AdminProjectOverview from './pages/admin/AdminProjectOverview';
 
 // Components
 import ProtectedAdminRoute from './components/ProtectedAdminRoute';
@@ -190,6 +191,7 @@ function App() {
 
 
                   <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                  <Route path="/admin/projects/overview" element={<AdminProjectOverview />} />
                   <Route path="/admin/projects" element={<ManageProjects />} />
                   <Route path="/admin/projects/:id" element={<AdminRepoDetail />} />
                   <Route path="/admin/users" element={<ManageUsers />} />

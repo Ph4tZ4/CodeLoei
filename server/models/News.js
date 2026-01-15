@@ -25,6 +25,17 @@ const NewsSchema = new mongoose.Schema({
     coverImage: {
         type: String
     },
+    isPopup: {
+        type: Boolean,
+        default: false
+    },
+    popupDuration: {
+        type: Number, // Days, 0 = until closed
+        default: 0
+    },
+    popupExpiresAt: {
+        type: Date
+    },
     createdAt: {
         type: Date,
         default: Date.now

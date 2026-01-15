@@ -9,6 +9,11 @@ const authOptional = require('../middleware/authOptional');
 router.get('/', authOptional, projectController.getProjects);
 router.get('/popular', projectController.getPopularProjects); // Probably public only?
 router.get('/user/:userId', authOptional, projectController.getProjectsByUser); // New route
+
+// Stats Routes (Must be before /:id)
+router.get('/stats/dashboard', auth, projectController.getDashboardStats); // New route for dashboard
+router.get('/stats', auth, projectController.getProjectStats); // New Project Overview Stats
+
 router.get('/:id', authOptional, projectController.getProject);
 router.get('/:id/files', authOptional, projectController.getProjectFiles);
 router.get('/:id/file', authOptional, projectController.getFileContent);
@@ -22,7 +27,5 @@ router.post('/upload', auth, projectController.uploadFiles);
 router.delete('/:id/files', auth, projectController.deleteFile);
 router.put('/:id/star', auth, projectController.starProject);
 router.get('/:id/download', auth, projectController.downloadProject); // Auth required to track download? Maybe optional but for now Auth.
-
-router.get('/stats/dashboard', auth, projectController.getDashboardStats); // New route for dashboard
 
 module.exports = router;

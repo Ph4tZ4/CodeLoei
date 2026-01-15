@@ -50,12 +50,14 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/projects', projectRoutes);
-app.use('/api/history', require('./routes/historyRoutes'));
-app.use('/api/users', require('./routes/userRoutes'));
-app.use('/api/news', newsRoutes);
-app.use('/api/dashboard', require('./routes/dashboardRoutes'));
+app.use('/api/projects', require('./routes/projectRoutes'));
+app.use('/api/news', require('./routes/newsRoutes'));
 app.use('/api/contact', require('./routes/contactRoutes'));
+app.use('/api/dashboard', require('./routes/dashboardRoutes'));
+app.use('/api/activity', require('./routes/activityRoutes'));
+app.use('/api/history', require('./routes/historyRoutes'));
+app.use('/api/users', require('./routes/userRoutes')); // Kept this line as it was not removed by the Code Edit
+app.use('/api/ai', require('./routes/aiRoutes'));
 
 // Database Connection
 // Database Connection

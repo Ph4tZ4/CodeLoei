@@ -7,12 +7,38 @@ const { classifyUserType } = require('../utils/userHelpers');
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
+const sendEmail = require('../utils/sendEmail');
+const crypto = require('crypto');
+
 exports.register = async (req, res) => {
     const { email, password, displayName } = req.body;
 
     try {
         let user = await User.findOne({ email });
         if (user) {
+            // If user exists but not verified, resend OTP
+            if (!user.isVerified) {
+                const otp = Math.floor(10000 + Math.random() * 90000).toString(); // 5 digit OTP
+                user.otp = otp;
+                user.otpExpires = Date.now() + 10 * 60 * 1000; // 10 mins
+
+                // Update info if changed
+                if (password) {
+                    const salt = await bcrypt.genSalt(10);
+                    user.password = await bcrypt.hash(password, salt);
+                }
+                if (displayName) user.displayName = displayName;
+
+                await user.save();
+
+                await sendEmail({
+                    email: user.email,
+                    subject: 'CodeLoei Verification Code',
+                    message: `Your verification code is: <b>${otp}</b>. It expires in 10 minutes.`
+                });
+
+                return res.json({ msg: 'OTP Sent', email: user.email, requireOtp: true });
+            }
             return res.status(400).json({ msg: 'User already exists' });
         }
 
@@ -21,8 +47,9 @@ exports.register = async (req, res) => {
             email,
             password,
             displayName: displayName || email.split('@')[0],
-            username: email.split('@')[0] + Math.floor(1000 + Math.random() * 9000), // Append random 4 digits to ensure uniqueness
-            userType
+            username: email.split('@')[0] + Math.floor(1000 + Math.random() * 9000),
+            userType,
+            isVerified: false // Default false
         };
 
         if (userType === 'college_member') {
@@ -35,20 +62,66 @@ exports.register = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(password, salt);
 
+        // Generate OTP
+        const otp = Math.floor(10000 + Math.random() * 90000).toString();
+        user.otp = otp;
+        user.otpExpires = Date.now() + 10 * 60 * 1000;
+
         await user.save();
 
-        const payload = {
-            user: {
-                id: user.id
-            }
-        };
+        // Send Email
+        try {
+            await sendEmail({
+                email: user.email,
+                subject: 'CodeLoei Verification Code',
+                message: `Your verification code is: <b>${otp}</b>. It expires in 10 minutes.`
+            });
+        } catch (emailErr) {
+            console.error("Email send failed", emailErr);
+            // Delete user if email fails? Or allow retry.
+            // For now, allow retry (user exists but unverified)
+            return res.status(500).json({ msg: 'Error sending email. Please try again.' });
+        }
+
+        res.json({ msg: 'OTP Sent', email: user.email, requireOtp: true });
+
+    } catch (err) {
+        console.error("Register Error:", err);
+        res.status(500).json({ msg: 'Server error: ' + err.message });
+    }
+};
+
+exports.verifyOTP = async (req, res) => {
+    const { email, otp } = req.body;
+    try {
+        const user = await User.findOne({ email });
+        if (!user) return res.status(400).json({ msg: 'User not found' });
+
+        if (user.isVerified) return res.status(400).json({ msg: 'User already verified' });
+
+        if (user.otp !== otp) {
+            return res.status(400).json({ msg: 'Invalid OTP' });
+        }
+
+        if (user.otpExpires < Date.now()) {
+            return res.status(400).json({ msg: 'OTP Expired' });
+        }
+
+        // OTP Valid
+        user.isVerified = true;
+        user.otp = undefined;
+        user.otpExpires = undefined;
+        await user.save();
+
+        // Login Logic (Return Token)
+        const payload = { user: { id: user.id } };
 
         // Log Activity
         ActivityLog.create({
             user: user.id,
             action: 'register',
-            details: `User ${user.email} registered.`
-        }).catch(err => console.error("Activity Log Error:", err));
+            details: `User ${user.email} verified and registered.`
+        }).catch(err => console.error("Log Error:", err));
 
         jwt.sign(
             payload,
@@ -59,14 +132,10 @@ exports.register = async (req, res) => {
                 res.json({ token, user: { id: user.id, email: user.email, displayName: user.displayName, userType: user.userType } });
             }
         );
+
     } catch (err) {
-        console.error("Register Error:", err);
-        if (err.code === 11000) {
-            const field = Object.keys(err.keyValue)[0];
-            return res.status(400).json({ msg: `User already exists (${field} is duplicate)` });
-        }
-        // Send JSON error to ensure frontend parses it correctly
-        res.status(500).json({ msg: 'Server error: ' + err.message });
+        console.error("Verify OTP Error:", err);
+        res.status(500).send('Server error');
     }
 };
 
@@ -105,6 +174,11 @@ exports.login = async (req, res) => {
                 user.banReason = null;
                 await user.save();
             }
+        }
+
+        // Check if verified
+        if (user.isVerified === false) {
+            return res.status(403).json({ msg: 'Please verify your email first.' });
         }
 
         const isMatch = await bcrypt.compare(password, user.password);

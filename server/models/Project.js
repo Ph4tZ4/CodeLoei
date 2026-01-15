@@ -21,6 +21,7 @@ const ProjectSchema = new mongoose.Schema({
         enum: ['public', 'private'],
         default: 'public'
     },
+    videoUrl: String,
     downloadCount: {
         type: Number,
         default: 0

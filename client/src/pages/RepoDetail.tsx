@@ -65,7 +65,7 @@ const RepoDetail = () => {
     const [isPinned, setIsPinned] = useState(false); // Fix: Added missing state
 
     // Edit States
-    const [editMode, setEditMode] = useState<{ [key: string]: boolean }>({}); // 'name', 'desc', 'tags'
+    const [editMode, setEditMode] = useState<{ [key: string]: boolean }>({}); // 'name', 'desc', 'tags', 'videoUrl'
     const [editValues, setEditValues] = useState<{ [key: string]: string }>({});
     const [saving, setSaving] = useState(false);
 
@@ -88,7 +88,8 @@ const RepoDetail = () => {
                     name: projData.name,
                     description: projData.description || '',
                     tags: projData.tags ? projData.tags.join(', ') : '',
-                    visibility: projData.visibility // Initialize visibility
+                    visibility: projData.visibility, // Initialize visibility
+                    videoUrl: projData.videoUrl || '' // Initialize videoUrl
                 });
 
                 // Check pin status if user logged in
@@ -129,7 +130,8 @@ const RepoDetail = () => {
                 name: project.name,
                 description: project.description || '',
                 tags: project.tags ? project.tags.join(', ') : '',
-                visibility: project.visibility // Reset visibility
+                visibility: project.visibility, // Reset visibility
+                videoUrl: project.videoUrl || '' // Reset videoUrl
             }));
         }
     };
@@ -146,7 +148,8 @@ const RepoDetail = () => {
                 language: project.language,
                 visibility: field === 'visibility' ? editValues.visibility : project.visibility, // Handle new visibility
                 license: project.license,
-                tags: (field === 'tags' ? editValues.tags : (project.tags || []).join(', ')).split(',').map(t => t.trim()).filter(t => t)
+                tags: (field === 'tags' ? editValues.tags : (project.tags || []).join(', ')).split(',').map(t => t.trim()).filter(t => t),
+                videoUrl: field === 'videoUrl' ? editValues.videoUrl : project.videoUrl // Handle videoUrl
             };
 
             const res = await api.put(`/projects/${project._id}`, fullPayload, token || undefined);
@@ -529,6 +532,71 @@ const RepoDetail = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-6">
+                    {/* Video Section */}
+                    {(project.videoUrl || isOwner) && (
+                        <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl overflow-hidden p-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                    <span className="text-red-500">▶</span> Project Presentation
+                                </h3>
+                                {isOwner && (
+                                    editMode.videoUrl ? (
+                                        <div className="flex gap-2">
+                                            <button onClick={() => handleSaveField('videoUrl')} disabled={saving} className="p-1.5 bg-green-500/20 text-green-500 rounded hover:bg-green-500/30 disabled:opacity-50"><Save className="w-4 h-4" /></button>
+                                            <button onClick={() => toggleEdit('videoUrl')} className="p-1.5 bg-red-500/20 text-red-500 rounded hover:bg-red-500/30"><X className="w-4 h-4" /></button>
+                                        </div>
+                                    ) : (
+                                        <button onClick={() => toggleEdit('videoUrl')} className="text-zinc-500 hover:text-blue-400 transition-colors">
+                                            <Pencil className="w-4 h-4" />
+                                        </button>
+                                    )
+                                )}
+                            </div>
+
+                            {editMode.videoUrl ? (
+                                <div className="mb-4">
+                                    <input
+                                        value={editValues.videoUrl}
+                                        onChange={e => setEditValues(prev => ({ ...prev, videoUrl: e.target.value }))}
+                                        className="w-full bg-black border border-blue-500 rounded-lg px-4 py-2 text-white outline-none"
+                                        placeholder="Enter YouTube URL or direct video link..."
+                                        autoFocus
+                                    />
+                                    <p className="text-xs text-zinc-500 mt-2">
+                                        supports YouTube links (e.g., https://youtube.com/watch?v=...) or direct video files (.mp4)
+                                    </p>
+                                </div>
+                            ) : null}
+
+                            {project.videoUrl ? (
+                                <div className="aspect-video w-full rounded-lg overflow-hidden bg-black">
+                                    {project.videoUrl.includes('youtube.com') || project.videoUrl.includes('youtu.be') ? (
+                                        <iframe
+                                            width="100%"
+                                            height="100%"
+                                            src={`https://www.youtube.com/embed/${project.videoUrl.split('v=')[1]?.split('&')[0] || project.videoUrl.split('/').pop()}`}
+                                            title="Project Video"
+                                            frameBorder="0"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            allowFullScreen
+                                        ></iframe>
+                                    ) : (
+                                        <video controls className="w-full h-full">
+                                            <source src={project.videoUrl} type="video/mp4" />
+                                            Your browser does not support the video tag.
+                                        </video>
+                                    )}
+                                </div>
+                            ) : (
+                                !editMode.videoUrl && (
+                                    <div className="text-center py-8 border border-dashed border-zinc-800 rounded-lg bg-zinc-900/20">
+                                        <p className="text-zinc-500 text-sm">No presentation video added.</p>
+                                    </div>
+                                )
+                            )}
+                        </div>
+                    )}
+
                     {/* File Browser */}
                     <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl overflow-hidden">
                         <div className="bg-zinc-900/80 px-4 py-3 border-b border-zinc-800 flex justify-between items-center backdrop-blur-sm">

@@ -68,6 +68,16 @@ const UserSchema = new mongoose.Schema({
     },
     banReason: {
         type: String
+    },
+    otp: {
+        type: String
+    },
+    otpExpires: {
+        type: Date
+    },
+    isVerified: {
+        type: Boolean,
+        default: false
     }
 });
 
