@@ -49,4 +49,9 @@ router.get('/', auth, userController.getAllUsers);
 // @access  Admin
 router.delete('/:id', auth, userController.deleteUser);
 
+// @route   DELETE api/users/me
+// @desc    Delete own account
+// @access  Private
+router.delete('/me', auth, userController.deleteMe);
+
 module.exports = router;

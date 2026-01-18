@@ -182,4 +182,19 @@ export const api = {
     async deleteContact(id: string, token: string) {
         return this.delete(`/contact/${id}`, token);
     },
+    async deleteMyAccount(token: string) {
+        return this.delete('/users/me', token);
+    },
+    async changePassword(data: any, token: string) {
+        return this.post('/auth/change-password', data, token);
+    },
+    async forgotPassword(email: string) {
+        return this.post('/auth/forgot-password', { email });
+    },
+    async resetPassword(data: any) {
+        return this.post('/auth/reset-password', data);
+    },
+    async verifyPasswordOTP(email: string, otp: string) {
+        return this.post('/auth/verify-password-otp', { email, otp });
+    }
 };

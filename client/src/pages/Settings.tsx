@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useOutletContext } from 'react-router-dom';
-import { User, Lock, Bell, Loader2, Camera, Upload, Trash2, X, Globe, Moon, Sun } from 'lucide-react';
+import { useNavigate, useOutletContext } from 'react-router-dom';
+import { User, Lock, Bell, Loader2, Camera, Upload, Trash2, X, Globe, Moon, Sun, LogOut, Shield, AlertTriangle } from 'lucide-react';
 import { api } from '../lib/api';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from '../lib/cropImage';
@@ -10,6 +10,7 @@ import { useAlert } from '../contexts/AlertContext';
 
 const Settings = () => {
     const { refreshUser } = useOutletContext<any>();
+    const navigate = useNavigate();
     const { t, language, setLanguage } = useLanguage();
     const { theme, setTheme } = useTheme();
     const { alert } = useAlert();
@@ -17,6 +18,21 @@ const Settings = () => {
     const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+
+    // Password Change State
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [passwordData, setPasswordData] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
+    const [passwordError, setPasswordError] = useState('');
+
+    // Forgot Password / OTP State
+    const [showOtpModal, setShowOtpModal] = useState(false);
+    const [otpStep, setOtpStep] = useState<'request' | 'verify' | 'reset'>('request');
+    const [otpEmail, setOtpEmail] = useState('');
+    const [otpCode, setOtpCode] = useState('');
+    const [newResetPassword, setNewResetPassword] = useState('');
+    const [confirmResetPassword, setConfirmResetPassword] = useState('');
 
     // Form State
     const [showPhotoMenu, setShowPhotoMenu] = useState(false);
@@ -112,6 +128,111 @@ const Settings = () => {
             await alert("Failed to update profile", undefined, 'danger');
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleChangePassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setPasswordError('');
+
+        if (passwordData.newPassword !== passwordData.confirmPassword) {
+            setPasswordError(t('auth.password_mismatch'));
+            return;
+        }
+
+        if (passwordData.newPassword.length < 6) {
+            setPasswordError('Password must be at least 6 characters');
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            await api.changePassword({
+                oldPassword: passwordData.oldPassword,
+                newPassword: passwordData.newPassword
+            }, token);
+
+            await alert("Password changed successfully", undefined, 'success');
+            setShowPasswordModal(false);
+            setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });
+            handleLogout();
+        } catch (err: any) {
+            setPasswordError(err.message || "Failed to change password");
+        }
+    };
+
+    const handleRequestOtp = async () => {
+        try {
+            // Use current user email if available, otherwise use input
+            const emailToUse = user?.email || otpEmail;
+            await api.forgotPassword(emailToUse);
+            setOtpStep('verify');
+            setOtpEmail(emailToUse);
+            await alert(`OTP sent to ${emailToUse}`, undefined, 'success');
+        } catch (err: any) {
+            await alert(err.message || "Failed to send OTP", undefined, 'danger');
+        }
+    };
+
+    const handleVerifyOtp = async () => {
+        try {
+            const res = await api.verifyPasswordOTP(otpEmail, otpCode);
+            if (res.isValid) {
+                setOtpStep('reset');
+                setPasswordError(''); // Clear previous errors
+            }
+        } catch (err: any) {
+            await alert(err.message || "Invalid OTP", undefined, 'danger');
+        }
+    };
+
+    const handleResetPassword = async () => {
+        if (newResetPassword.length < 6) {
+            await alert('New password must be at least 6 characters', undefined, 'warning');
+            return;
+        }
+
+        if (newResetPassword !== confirmResetPassword) {
+            await alert('Passwords do not match', undefined, 'warning');
+            return;
+        }
+
+        try {
+            await api.resetPassword({
+                email: otpEmail,
+                otp: otpCode,
+                newPassword: newResetPassword
+            });
+            await alert("Password reset successfully. Please login again.", undefined, 'success');
+            setShowOtpModal(false);
+            setShowPasswordModal(false);
+            // Optional: Logout user to valid new password check
+            handleLogout();
+        } catch (err: any) {
+            await alert(err.message || "Failed to reset password", undefined, 'danger');
+        }
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        navigate('/');
+        window.location.reload();
+    };
+
+    const handleDeleteAccount = async () => {
+        setDeleting(true);
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            await api.deleteMyAccount(token);
+            localStorage.removeItem('token');
+            window.location.href = '/';
+        } catch (err) {
+            console.error("Delete account failed", err);
+            await alert("Failed to delete account", undefined, 'danger');
+            setDeleting(false);
+            setShowDeleteConfirm(false);
         }
     };
 
@@ -352,9 +473,323 @@ const Settings = () => {
                     {activeTab === 'account' && (
                         <div className="space-y-6 animate-fade-in">
                             <h2 className="text-lg font-bold text-white">{t('settings.account.title')}</h2>
-                            <div className="text-zinc-500 text-sm">
-                                {t('settings.account.desc')}
+
+                            {/* Authentication Method */}
+                            <div className="p-4 bg-black/20 rounded-lg border border-zinc-800">
+                                <div className="flex items-center gap-4">
+                                    <div className={`p-2 rounded-lg ${user?.googleId ? 'bg-blue-500/10' : 'bg-purple-500/10'}`}>
+                                        {user?.googleId ? (
+                                            <Shield className="w-6 h-6 text-blue-500" />
+                                        ) : (
+                                            <Lock className="w-6 h-6 text-purple-500" />
+                                        )}
+                                    </div>
+                                    <div className="flex-1">
+                                        <h3 className="text-sm font-medium text-white">วิธีการเข้าสู่ระบบ</h3>
+                                        {user?.googleId ? (
+                                            <p className="text-xs text-zinc-500">บัญชีของคุณเชื่อมต่อกับ Google Authentication</p>
+                                        ) : (
+                                            <div className="space-y-2">
+                                                <p className="text-xs text-zinc-500">บัญชี CodeLoei (เข้าสู่ระบบด้วยรหัสผ่าน)</p>
+                                                <button
+                                                    onClick={() => setShowPasswordModal(true)}
+                                                    className="text-xs text-blue-400 hover:text-blue-300 underline"
+                                                >
+                                                    เปลี่ยนรหัสผ่าน
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="px-3 py-1 bg-green-500/10 text-green-400 text-xs font-medium rounded-full border border-green-500/20">
+                                        Active
+                                    </div>
+                                </div>
                             </div>
+
+                            {/* Password Change Modal */}
+                            {showPasswordModal && (
+                                <div className="fixed inset-0 z-[70] flex items-center justify-center px-4 bg-black/80 backdrop-blur-sm">
+                                    <div className="bg-zinc-950 border border-zinc-800 rounded-xl w-full max-w-md shadow-2xl animate-modal-in overflow-hidden">
+                                        <div className="flex justify-between items-center p-6 border-b border-zinc-800 bg-zinc-950">
+                                            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                                <Lock className="w-5 h-5 text-blue-500" />
+                                                เปลี่ยนรหัสผ่าน
+                                            </h3>
+                                            <button onClick={() => setShowPasswordModal(false)} className="text-zinc-500 hover:text-white transition-colors">
+                                                <X className="w-5 h-5" />
+                                            </button>
+                                        </div>
+
+                                        <form onSubmit={handleChangePassword} className="p-6 space-y-4">
+                                            {passwordError && (
+                                                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 text-sm flex items-center gap-2">
+                                                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                                                    {passwordError}
+                                                </div>
+                                            )}
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-zinc-400 mb-1.5">รหัสผ่านปัจจุบัน</label>
+                                                <input
+                                                    type="password"
+                                                    className="w-full bg-black border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:border-blue-500 outline-none transition-colors"
+                                                    value={passwordData.oldPassword}
+                                                    onChange={e => setPasswordData({ ...passwordData, oldPassword: e.target.value })}
+                                                    required
+                                                />
+                                                <div className="text-right mt-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setShowPasswordModal(false);
+                                                            setShowOtpModal(true);
+                                                            setOtpStep('request');
+                                                        }}
+                                                        className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                                                    >
+                                                        ลืมรหัสผ่านเดิม?
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-zinc-400 mb-1.5">รหัสผ่านใหม่</label>
+                                                <input
+                                                    type="password"
+                                                    className="w-full bg-black border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:border-blue-500 outline-none transition-colors"
+                                                    value={passwordData.newPassword}
+                                                    onChange={e => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                                                    required
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-zinc-400 mb-1.5">{t('auth.confirm_password_label')}</label>
+                                                <input
+                                                    type="password"
+                                                    className="w-full bg-black border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:border-blue-500 outline-none transition-colors"
+                                                    value={passwordData.confirmPassword}
+                                                    onChange={e => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                                                    required
+                                                />
+                                            </div>
+
+                                            <div className="flex gap-3 justify-end pt-6 border-t border-zinc-800 mt-6">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowPasswordModal(false)}
+                                                    className="px-4 py-2 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg transition-colors text-sm font-medium"
+                                                >
+                                                    {t('common.cancel')}
+                                                </button>
+                                                <button
+                                                    type="submit"
+                                                    className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors text-sm font-bold shadow-lg shadow-blue-900/20"
+                                                >
+                                                    เปลี่ยนรหัสผ่าน
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Forgot Password OTP Modal */}
+                            {showOtpModal && (
+                                <div className="fixed inset-0 z-[70] flex items-center justify-center px-4 bg-black/80 backdrop-blur-sm">
+                                    <div className="bg-zinc-950 border border-zinc-800 rounded-xl w-full max-w-md shadow-2xl animate-modal-in overflow-hidden">
+                                        <div className="flex justify-between items-center p-6 border-b border-zinc-800 bg-zinc-950">
+                                            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                                <Shield className="w-5 h-5 text-blue-500" />
+                                                {otpStep === 'request' ? 'รีเซ็ตรหัสผ่าน' : 'ยืนยันรหัส OTP'}
+                                            </h3>
+                                            <button onClick={() => setShowOtpModal(false)} className="text-zinc-500 hover:text-white transition-colors">
+                                                <X className="w-5 h-5" />
+                                            </button>
+                                        </div>
+
+                                        <div className="p-6">
+                                            {otpStep === 'request' && (
+                                                <div className="space-y-6">
+                                                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                                                        <p className="text-zinc-300 text-sm">
+                                                            ระบบจะส่งรหัส OTP (5 หลัก) ไปยังอีเมลของคุณ:<br />
+                                                            <span className="text-white font-bold mt-1 block">{user?.email}</span>
+                                                        </p>
+                                                    </div>
+
+                                                    <div className="flex justify-end gap-3 pt-6 border-t border-zinc-800 mt-2">
+                                                        <button
+                                                            onClick={() => setShowOtpModal(false)}
+                                                            className="px-4 py-2 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg transition-colors text-sm font-medium"
+                                                        >
+                                                            ยกเลิก
+                                                        </button>
+                                                        <button
+                                                            onClick={handleRequestOtp}
+                                                            className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors text-sm font-bold shadow-lg shadow-blue-900/20"
+                                                        >
+                                                            ส่ง OTP
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {otpStep === 'verify' && (
+                                                <div className="space-y-4">
+                                                    <p className="text-zinc-400 text-sm">
+                                                        กรุณากรอกรหัส OTP ที่ได้รับทางอีเมล <span className="text-white font-medium">{otpEmail}</span>
+                                                    </p>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-zinc-400 mb-1.5">รหัส OTP 5 หลัก</label>
+                                                        <input
+                                                            type="text"
+                                                            className="w-full bg-black border border-zinc-800 rounded-lg px-4 py-3 text-white focus:border-blue-500 outline-none transition-colors text-center tracking-[0.5em] text-xl font-mono"
+                                                            maxLength={5}
+                                                            value={otpCode}
+                                                            onChange={e => setOtpCode(e.target.value)}
+                                                            placeholder="•••••"
+                                                        />
+                                                    </div>
+                                                    <div className="flex justify-end gap-3 pt-6 border-t border-zinc-800 mt-6">
+                                                        <button
+                                                            onClick={() => setOtpStep('request')}
+                                                            className="px-4 py-2 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg transition-colors text-sm font-medium"
+                                                        >
+                                                            ย้อนกลับ
+                                                        </button>
+                                                        <button
+                                                            onClick={handleVerifyOtp}
+                                                            className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors text-sm font-bold shadow-lg shadow-blue-900/20"
+                                                        >
+                                                            ตรวจสอบ OTP
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {otpStep === 'reset' && (
+                                                <div className="space-y-4">
+                                                    {passwordError && (
+                                                        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 text-sm flex items-center gap-2">
+                                                            <AlertTriangle className="w-4 h-4 shrink-0" />
+                                                            {passwordError}
+                                                        </div>
+                                                    )}
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-zinc-400 mb-1.5">ตั้งรหัสผ่านใหม่</label>
+                                                        <input
+                                                            type="password"
+                                                            className="w-full bg-black border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:border-blue-500 outline-none transition-colors"
+                                                            value={newResetPassword}
+                                                            onChange={e => setNewResetPassword(e.target.value)}
+                                                            placeholder="New Password"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-zinc-400 mb-1.5">ยืนยันรหัสผ่านใหม่</label>
+                                                        <input
+                                                            type="password"
+                                                            className="w-full bg-black border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:border-blue-500 outline-none transition-colors"
+                                                            value={confirmResetPassword}
+                                                            onChange={e => setConfirmResetPassword(e.target.value)}
+                                                            placeholder="Confirm New Password"
+                                                        />
+                                                    </div>
+                                                    <div className="flex justify-end gap-3 pt-6 border-t border-zinc-800 mt-6">
+                                                        <button
+                                                            onClick={() => setOtpStep('verify')}
+                                                            className="px-4 py-2 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg transition-colors text-sm font-medium"
+                                                        >
+                                                            ย้อนกลับ
+                                                        </button>
+                                                        <button
+                                                            onClick={handleResetPassword}
+                                                            className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors text-sm font-bold shadow-lg shadow-blue-900/20"
+                                                        >
+                                                            เปลี่ยนรหัสผ่าน
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Session Management */}
+                            <div className="p-4 bg-black/20 rounded-lg border border-zinc-800">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-2 bg-zinc-800 rounded-lg">
+                                            <LogOut className="w-6 h-6 text-zinc-400" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-sm font-medium text-white">ออกจากระบบ</h3>
+                                            <p className="text-xs text-zinc-500">จบการทำงานของเซสชั่นปัจจุบัน</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-medium rounded-lg transition-colors"
+                                    >
+                                        ออกจากระบบ
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Danger Zone */}
+                            <div className="mt-8 pt-8 border-t border-zinc-800">
+                                <h3 className="text-red-500 font-bold mb-4 flex items-center gap-2">
+                                    <AlertTriangle className="w-5 h-5" />
+                                    Danger Zone
+                                </h3>
+
+                                <div className="p-4 border border-red-900/30 bg-red-900/10 rounded-lg flex items-center justify-between">
+                                    <div>
+                                        <h4 className="text-white font-medium text-sm">ลบบัญชีผู้ใช้</h4>
+                                        <p className="text-zinc-500 text-xs mt-1">
+                                            การดำเนินการนี้จะไม่สามารถย้อนกลับได้ ข้อมูลทั้งหมดจะถูกลบถาวร
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowDeleteConfirm(true)}
+                                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
+                                    >
+                                        ลบบัญชี
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Delete Confirmation Modal */}
+                            {showDeleteConfirm && (
+                                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                                    <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+                                        <h3 className="text-xl font-bold text-white mb-2">ยืนยันการลบบัญชี?</h3>
+                                        <p className="text-zinc-400 text-sm mb-6">
+                                            คุณแน่ใจหรือไม่ที่จะลบบัญชีนี้? การกระทำนี้ไม่สามารถย้อนกลับได้ และข้อมูลโครงการทั้งหมดของคุณจะหายไป
+                                        </p>
+
+                                        <div className="flex gap-3 justify-end">
+                                            <button
+                                                onClick={() => setShowDeleteConfirm(false)}
+                                                className="px-4 py-2 text-zinc-300 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors text-sm font-medium"
+                                                disabled={deleting}
+                                            >
+                                                ย้อนกลับ
+                                            </button>
+                                            <button
+                                                onClick={handleDeleteAccount}
+                                                disabled={deleting}
+                                                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
+                                            >
+                                                {deleting && <Loader2 className="w-4 h-4 animate-spin" />}
+                                                ยืนยันการลบ
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 

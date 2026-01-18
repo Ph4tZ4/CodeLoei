@@ -315,3 +315,28 @@ exports.banUser = async (req, res) => {
         res.status(500).send('Server Error');
     }
 };
+
+// Delete own account (User)
+exports.deleteMe = async (req, res) => {
+    try {
+        // req.user.id comes from auth middleware
+        const userId = req.user.id;
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+
+        // Delete the user
+        await User.findByIdAndDelete(userId);
+
+        // Delete their projects
+        const Project = require('../models/Project');
+        await Project.deleteMany({ ownerId: userId });
+
+        res.json({ msg: 'User deleted successfully' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};

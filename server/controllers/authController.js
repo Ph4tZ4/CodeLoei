@@ -343,3 +343,87 @@ exports.getMe = async (req, res) => {
         res.status(500).send('Server Error');
     }
 };
+
+exports.changePassword = async (req, res) => {
+    const { oldPassword, newPassword } = req.body;
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+        if (!user.password) return res.status(400).json({ msg: 'User uses Google Login' });
+
+        const isMatch = await bcrypt.compare(oldPassword, user.password);
+        if (!isMatch) return res.status(400).json({ msg: 'Invalid current password' });
+
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, salt);
+        await user.save();
+
+        res.json({ msg: 'Password updated successfully' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+exports.forgotPassword = async (req, res) => {
+    const { email } = req.body;
+    try {
+        const user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+        if (!user.password) return res.status(400).json({ msg: 'This account uses Google Login' });
+
+        const otp = Math.floor(10000 + Math.random() * 90000).toString();
+        user.otp = otp;
+        user.otpExpires = Date.now() + 10 * 60 * 1000; // 10 mins
+        await user.save();
+
+        await sendEmail({
+            email: user.email,
+            subject: 'CodeLoei Password Reset OTP',
+            message: `Your OTP for password reset is: <b>${otp}</b>. It expires in 10 minutes.`
+        });
+
+        res.json({ msg: 'OTP sent to email', email: user.email });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+exports.resetPassword = async (req, res) => {
+    const { email, otp, newPassword } = req.body;
+    try {
+        const user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+
+        if (user.otp !== otp) return res.status(400).json({ msg: 'Invalid OTP' });
+        if (user.otpExpires < Date.now()) return res.status(400).json({ msg: 'OTP Expired' });
+
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, salt);
+        user.otp = undefined;
+        user.otpExpires = undefined;
+        await user.save();
+
+        res.json({ msg: 'Password reset successfully' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+exports.verifyPasswordOTP = async (req, res) => {
+    const { email, otp } = req.body;
+    try {
+        const user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+
+        if (user.otp !== otp) return res.status(400).json({ msg: 'Invalid OTP' });
+        if (user.otpExpires < Date.now()) return res.status(400).json({ msg: 'OTP Expired' });
+
+        res.json({ msg: 'OTP Verified', isValid: true });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
