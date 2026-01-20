@@ -2,7 +2,8 @@ const mongoose = require('mongoose');
 const User = require('../models/User'); // Adjust path relative to script location
 const Admin = require('../models/Admin'); // Adjust path relative to script location
 const bcrypt = require('bcryptjs');
-require('dotenv').config({ path: '../.env' }); // Load env from parent directory
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 const seedTA = async () => {
     try {
