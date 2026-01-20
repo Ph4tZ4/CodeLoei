@@ -3,7 +3,7 @@ import ProjectCard from '../components/ProjectCard';
 import type { Project } from '../types';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import CustomSelect from '../components/CustomSelect';
 
 const AllProjects = ({ projects }: { projects: Project[] }) => {
