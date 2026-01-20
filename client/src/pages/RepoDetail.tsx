@@ -85,7 +85,7 @@ const RepoDetail = () => {
 
                 // Parallelize requests
                 const projectPromise = api.get(`/projects/${id}`, token || undefined);
-                const filesPromise = api.getProjectFiles(id);
+                const filesPromise = api.getProjectFiles(id, token || undefined);
 
                 // Record view in background if token exists
                 if (token) {
@@ -113,7 +113,7 @@ const RepoDetail = () => {
                 const readme = filesData.find((f: any) => f.name.toLowerCase() === 'readme.md');
                 if (readme) {
                     try {
-                        const fileData = await api.getFileContent(id, readme.path);
+                        const fileData = await api.getFileContent(id, readme.path, token || undefined);
                         setReadmeContent(fileData.content);
                     } catch (err) { console.error(err); }
                 }
@@ -288,7 +288,7 @@ const RepoDetail = () => {
 
                     // Refresh files list locally optimization? 
                     // Better to just refresh at the very end usually, but for now refreshing every file is safer for conflict check consistency
-                    const filesData = await api.getProjectFiles(project._id);
+                    const filesData = await api.getProjectFiles(project._id, token);
                     setFiles(filesData);
                     resolve();
                 };
@@ -352,7 +352,8 @@ const RepoDetail = () => {
             // We refresh it after every upload in `performUpload` (let's add that logic back).
 
             // Simpler: Just refresh files before checking?
-            const filesData = await api.getProjectFiles(project!._id);
+            const token = localStorage.getItem('token');
+            const filesData = await api.getProjectFiles(project!._id, token || undefined);
             setFiles(filesData); // Ensure fresh
 
             while (filesData.some((f: any) => f.path === name)) {

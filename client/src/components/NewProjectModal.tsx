@@ -20,7 +20,8 @@ const NewProjectModal = ({ isOpen, onClose, user }: NewProjectModalProps) => {
     const navigate = useNavigate();
     const [name, setName] = useState('');
     const [desc, setDesc] = useState('');
-    const [lang, setLang] = useState('TypeScript');
+    const [lang, setLang] = useState('');
+    const [otherLang, setOtherLang] = useState('');
     const [visibility, setVisibility] = useState<'public' | 'private'>('public');
     const [initReadme, setInitReadme] = useState(false);
     const [gitignore, setGitignore] = useState('None');
@@ -30,10 +31,11 @@ const NewProjectModal = ({ isOpen, onClose, user }: NewProjectModalProps) => {
     const [loading, setLoading] = useState(false);
 
     const isNameValid = name.length > 0 && /^[a-zA-Z0-9-_]+$/.test(name);
+    const isLangValid = lang !== '' && (lang !== 'Other' || otherLang.trim().length > 0);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!name) return;
+        if (!name || !isLangValid) return;
         setLoading(true);
 
         try {
@@ -41,7 +43,7 @@ const NewProjectModal = ({ isOpen, onClose, user }: NewProjectModalProps) => {
             const res = await api.post('/projects', {
                 name,
                 description: desc,
-                language: lang,
+                language: lang === 'Other' ? otherLang : lang,
                 visibility,
                 license: license !== 'None' ? license : null,
                 tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
@@ -65,6 +67,8 @@ const NewProjectModal = ({ isOpen, onClose, user }: NewProjectModalProps) => {
             // Reset form
             setName('');
             setDesc('');
+            setLang('');
+            setOtherLang('');
             setVisibility('public');
             setInitReadme(false);
             setGitignore('None');
@@ -255,17 +259,25 @@ const NewProjectModal = ({ isOpen, onClose, user }: NewProjectModalProps) => {
                                     value={lang}
                                     onChange={(val) => setLang(val)}
                                     options={[
-                                        { value: "TypeScript", label: "TypeScript" },
-                                        { value: "JavaScript", label: "JavaScript" },
-                                        { value: "Python", label: "Python" },
-                                        { value: "Java", label: "Java" },
-                                        { value: "C#", label: "C#" },
-                                        { value: "Go", label: "Go" },
-                                        { value: "Rust", label: "Rust" }
+                                        ...["C", "C++", "C#", "Go", "Java", "JavaScript", "Kotlin", "PHP", "Python", "Ruby", "Rust", "Swift", "TypeScript", "Unity", "Unreal Engine"].map(l => ({ value: l, label: l })),
+                                        { value: 'Other', label: t('new_project.other_language') }
                                     ]}
+                                    placeholder={t('new_project.select_language_placeholder')}
                                     className="w-full"
                                 />
                             </div>
+                            {lang === 'Other' && (
+                                <div className="mt-2 animate-fade-in">
+                                    <label className="block text-xs font-medium text-gray-400 mb-1">{t('new_project.specify_language')}</label>
+                                    <input
+                                        value={otherLang}
+                                        onChange={(e) => setOtherLang(e.target.value)}
+                                        className="w-full bg-black border border-zinc-800 rounded-lg px-3 py-2 text-white focus:border-white outline-none transition-all text-sm"
+                                        placeholder="Pascal, Assembly, etc."
+                                        required
+                                    />
+                                </div>
+                            )}
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-400 mb-1.5">{t('new_project.tags')}</label>
@@ -296,7 +308,7 @@ const NewProjectModal = ({ isOpen, onClose, user }: NewProjectModalProps) => {
                         <button type="button" onClick={onClose} className="px-6 py-2.5 text-sm font-medium text-gray-400 hover:text-white hover:bg-zinc-900 rounded-lg transition-colors">{t('common.cancel')}</button>
                         <button
                             type="submit"
-                            disabled={loading || !name}
+                            disabled={loading || !name || !isLangValid}
                             className="px-8 py-2.5 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all shadow-lg shadow-green-900/20"
                         >
                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}

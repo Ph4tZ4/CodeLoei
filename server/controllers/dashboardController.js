@@ -146,7 +146,7 @@ exports.getAdminStats = async (req, res) => {
         sevenDaysAgo.setHours(0, 0, 0, 0);
 
         // Parallel execution
-        const [onlineUsers, totalProjects, totalViewsData, trafficData, recentActivities] = await Promise.all([
+        const [onlineUsers, totalProjects, totalViewsData, trafficDataRaw, recentActivities] = await Promise.all([
             User.countDocuments({ lastActiveAt: { $gte: fiveMinutesAgo } }),
             Project.countDocuments(),
             Project.aggregate([{ $group: { _id: null, total: { $sum: "$views" } } }]), // Faster sum using aggregate
@@ -156,6 +156,20 @@ exports.getAdminStats = async (req, res) => {
             ]),
             ActivityLog.find().sort({ createdAt: -1 }).limit(5).populate('user', 'email')
         ]);
+
+        // Process Traffic Data (Fill gaps for last 7 days)
+        const trafficData = [];
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const dateKey = d.toISOString().split('T')[0];
+            const found = trafficDataRaw.find(item => item._id === dateKey);
+
+            trafficData.push({
+                day: `${d.getDate()}/${d.getMonth() + 1}`,
+                visits: found ? found.count : 0
+            });
+        }
 
         const totalViews = totalViewsData.length > 0 ? totalViewsData[0].total : 0;
         const serverStatus = 'Healthy';

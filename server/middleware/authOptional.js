@@ -14,20 +14,24 @@ module.exports = async function (req, res, next) {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
 
-        // Fetch user (optional, but consistent with main auth)
-        // We only really need the ID for the query, but fetching user is safer for role checks if needed
-        // For performance, maybe just use decoded.user? 
-        // The main auth middleware fetches full user. Let's do that for consistency if easy.
+        let user;
+        // Check if admin based on role in payload
+        if (decoded.user.role === 'admin') {
+            const Admin = require('../models/Admin');
+            user = await Admin.findById(decoded.user.id).select('-password');
+            if (user) {
+                user = user.toObject();
+                user.role = 'admin';
+                user.userType = 'admin';
+            }
+        } else {
+            user = await User.findById(decoded.user.id).select('-password');
+        }
 
-        req.user = await User.findById(decoded.user.id).select('-password');
-        // If user deleted, treat as guest
-        if (!req.user) req.user = null;
+        req.user = user || null;
 
         next();
     } catch (err) {
-        // INVALID token - usually implies tampering or expiry. 
-        // Should we block or treat as guest? 
-        // Treating as guest (req.user = null) is safer for "optional" routes so the page doesn't crash.
         req.user = null;
         next();
     }

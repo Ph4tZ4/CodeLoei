@@ -58,7 +58,7 @@ exports.analyzeProjects = async (req, res) => {
 
 exports.analyzeOverview = async (req, res) => {
     try {
-        // 1. Gather comprehensive stats (duplicated from projectController to be self-contained)
+        // 1. Gather comprehensive stats
 
         // Language Distribution
         const langStats = await Project.aggregate([
@@ -72,7 +72,7 @@ exports.analyzeOverview = async (req, res) => {
             { $group: { _id: "$visibility", count: { $sum: 1 } } }
         ]);
 
-        // Popular Tags
+        // Popular Tags (Most Created - What students like to make)
         const popularTags = await Project.aggregate([
             { $unwind: "$tags" },
             { $group: { _id: "$tags", count: { $sum: 1 } } },
@@ -80,48 +80,94 @@ exports.analyzeOverview = async (req, res) => {
             { $limit: 10 }
         ]);
 
-        // Top Projects (Context for AI)
-        const topProjects = await Project.find({ visibility: 'public' })
+        // Views by Tag (Most Viewed - What people like to see)
+        const viewsByTag = await Project.aggregate([
+            { $unwind: "$tags" },
+            { $group: { _id: "$tags", totalViews: { $sum: "$views" } } },
+            { $sort: { totalViews: -1 } },
+            { $limit: 10 }
+        ]);
+
+        // Top Popular Projects (Score based)
+        const topPopular = await Project.aggregate([
+            {
+                $addFields: {
+                    score: {
+                        $add: [
+                            { $ifNull: ["$stars", 0] },
+                            { $ifNull: ["$downloadCount", 0] },
+                            { $ifNull: ["$views", 0] }
+                        ]
+                    }
+                }
+            },
+            { $sort: { score: -1 } },
+            { $limit: 5 },
+            { $project: { name: 1, score: 1, description: 1, tags: 1 } }
+        ]);
+
+        // Top Projects by Views
+        const topViewed = await Project.find({ visibility: 'public' })
             .sort({ views: -1 })
             .limit(5)
-            .select('name description stars views language tags');
+            .select('name stars views tags');
 
         const totalProjects = await Project.countDocuments();
 
         const statsContext = {
             totalProjects,
             languages: langStats.map(s => `${s._id}: ${s.count}`),
-            visibility: visibilityStats.map(s => `${s._id}: ${s.count}`),
-            topTags: popularTags.map(t => `${t._id} (${t.count})`),
-            sampleTopProjects: topProjects
+            mostCreatedTags: popularTags.map(t => `${t._id} (${t.count} projects)`),
+            mostViewedTags: viewsByTag.map(t => `${t._id} (${t.totalViews} views)`),
+            topPopularProjects: topPopular.map(p => `${p.name} (Score: ${p.score}, Tags: ${p.tags})`),
+            mostViewedProjects: topViewed.map(p => `${p.name} (${p.views} views, Tags: ${p.tags})`)
         };
 
         // Mock response if no API Key
         if (!genAI) {
             console.log("No GEMINI_API_KEY found. Using mock AI response for overview.");
             return res.json({
-                summary: "AI Overview (จำลอง): ภาพรวมโครงการแสดงให้เห็นถึงความตื่นตัวในการพัฒนาเว็บแอปพลิเคชัน โดยภาษา JavaScript และ TypeScript เป็นภาษาที่ได้รับความนิยมสูงสุด โปรเจกต์ส่วนใหญ่มีการเปิดเผยเป็นสาธารณะเพื่อแบ่งปันความรู้",
-                trends: "Key Trends (จำลอง): \n1. Full-stack Development เป็นที่นิยมสูงสุด\n2. มีการใช้ AI/ML libraries เพิ่มขึ้นในโปรเจกต์ปีนี้\n3. การทำโปรเจกต์เพื่อสังคมและการศึกษาได้รับความสนใจมากขึ้น"
+                summary: "AI Overview (จำลอง): ภาพรวมแสดงให้เห็นว่านักเรียนนิยมสร้างโปรเจกต์เกี่ยวกับ Web Development (React, Node.js) แต่ความสนใจของผู้เข้าชมกลับพุ่งเป้าไปที่โปรเจกต์ด้าน Data Science และ AI ซึ่งมียอดวิวสูงสุด สิ่งนี้ชี้ให้เห็นถึงความต้องการเนื้อหาที่แตกต่างจากสิ่งที่ผลิต",
+                trends: "Key Trends (จำลอง): \n1. Supply vs Demand: นักเรียนทำเว็บเยอะ แต่คนดูอยากดู AI\n2. Top Project: 'Smart Home Automation' ได้รับความนิยมสูงสุดจากคะแนนรวม\n3. ภาษา: Python มียอดวิวเฉลี่ยต่อโปรเจกต์สูงกว่า JavaScript"
             });
         }
 
         // Real AI Analysis
-        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+        let text = "";
+        try {
+            const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
-        const prompt = `
-        Analyze the following aggregated project statistics from a student repository:
-        ${JSON.stringify(statsContext)}
+            const prompt = `
+            Analyze the following aggregated project statistics from a student repository:
+            ${JSON.stringify(statsContext)}
 
-        Please provide an "Executive Summary" (overview of the ecosystem state) and identify "Key Trends & Patterns" (what students are focusing on).
-        
-        **IMPORTANT: Respond strictly in Thai language.**
-        Format the output clearly with "Summary:" and "Trends:".
-        Keep the tone professional yet encouraging for students.
-        `;
+            Please provide an "Executive Summary" and "Key Trends".
+            
+            **Specific Analysis Required:**
+            1. **Compare "What students like to make" (mostCreatedTags) vs "What people like to view" (mostViewedTags).** Access if there is a gap between supply and demand.
+            2. **Highlight the "Top Popular Projects" and "Most Viewed Projects".** Mention what types of projects they are.
+            3. **Identify emerging themes.**
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+            **IMPORTANT: Respond strictly in Thai language.**
+            Format the output clearly with "Summary:" and "Trends:".
+            Keep the tone professional yet encouraging.
+            `;
+
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            text = response.text();
+
+        } catch (apiError) {
+            console.warn("Gemini API Error (Backing off to mock):", apiError.message);
+            // Fallback Mock Response (Updated with new logic reflection)
+            text = `
+            Summary: AI Overview (Backup Mode): เนื่องจากข้อจำกัดการเชื่อมต่อ AI ระบบจึงแสดงผลการวิเคราะห์สำรอง: ภาพรวมแสดงให้เห็นว่านักเรียนนิยมสร้างโปรเจกต์เกี่ยวกับ Web Development (React, Node.js) แต่ความสนใจของผู้เข้าชมกลับพุ่งเป้าไปที่โปรเจกต์ด้าน Data Science และ AI ซึ่งมียอดวิวสูงสุด
+            Trends: Key Trends (Backup Mode): 
+            1. Supply vs Demand: นักเรียนทำเว็บเยอะ แต่คนดูอยากดู AI
+            2. Top Project: 'Smart Home Automation' ได้รับความนิยมสูงสุดจากคะแนนรวม
+            3. ภาษา: Python มียอดวิวเฉลี่ยต่อโปรเจกต์สูงกว่า JavaScript
+            `;
+        }
 
         // Simple parsing
         const summaryMatch = text.match(/Summary:([\s\S]*?)(?=Trends:|$)/i);

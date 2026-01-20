@@ -85,7 +85,7 @@ const AdminRepoDetail = () => {
 
                 // Parallelize fetching
                 const projectPromise = api.get(`/projects/${id}`, token || undefined);
-                const filesPromise = api.getProjectFiles(id);
+                const filesPromise = api.getProjectFiles(id, token || undefined);
 
                 const [projData, filesData] = await Promise.all([projectPromise, filesPromise]);
 
@@ -104,7 +104,7 @@ const AdminRepoDetail = () => {
                 const readme = filesData.find((f: any) => f.name.toLowerCase() === 'readme.md');
                 if (readme) {
                     try {
-                        const fileData = await api.getFileContent(id, readme.path);
+                        const fileData = await api.getFileContent(id, readme.path, token || undefined);
                         setReadmeContent(fileData.content);
                     } catch (err) { console.error(err); }
                 }
@@ -267,7 +267,8 @@ const AdminRepoDetail = () => {
             const ext = name.includes('.') ? `.${name.split('.').pop()}` : '';
             const base = name.includes('.') ? name.substring(0, name.lastIndexOf('.')) : name;
 
-            const filesData = await api.getProjectFiles(project!._id);
+            const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+            const filesData = await api.getProjectFiles(project!._id, token || undefined);
             setFiles(filesData);
 
             while (filesData.some((f: any) => f.path === name)) {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
-import { PieChart, Eye, Star, Layers, Lock, Globe, Hash, BarChart3, Sparkles } from 'lucide-react';
+import { PieChart, Eye, Star, Layers, Lock, Globe, Hash, BarChart3, Sparkles, Flame, Crown } from 'lucide-react';
 import { useAlert } from '../../contexts/AlertContext';
 
 const AdminProjectOverview = () => {
@@ -242,7 +242,53 @@ const AdminProjectOverview = () => {
                     </div>
                 </div>
 
-            </div>
+                {/* Top Popular (Score) */}
+                <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6">
+                    <h3 className="text-lg font-bold flex items-center gap-2 mb-4">
+                        <Flame className="w-5 h-5 text-orange-500" /> ยอดนิยมสูงสุด (Score)
+                    </h3>
+                    <div className="space-y-3">
+                        {stats.topPopular?.map((project: any, i: number) => (
+                            <ProjectRankItem
+                                key={project._id}
+                                rank={i + 1}
+                                project={project}
+                                metric={project.score}
+                                metricLabel="Score"
+                                icon={Flame}
+                                color="text-orange-500"
+                            />
+                        ))}
+                    </div>
+                </div>
+
+                {/* Top Popular Users (Score) */}
+                <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6">
+                    <h3 className="text-lg font-bold flex items-center gap-2 mb-4">
+                        <Crown className="w-5 h-5 text-purple-500" /> ผู้ใช้ยอดนิยม (Score)
+                    </h3>
+                    <div className="space-y-3">
+                        {stats.topPopularUsers?.map((user: any, i: number) => (
+                            <div key={user._id} className="flex items-center justify-between p-3 rounded-lg bg-black/20 hover:bg-black/40 transition-colors" title={`Score: ${user.score} (Views: ${user.stats.views}, Stars: ${user.stats.stars}, DL: ${user.stats.downloads}, Followers: ${user.stats.followers})`}>
+                                <div className="flex items-center gap-3 overflow-hidden">
+                                    <span className={`w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full text-xs font-bold ${i === 0 ? 'bg-purple-500/20 text-purple-500' : 'bg-zinc-800 text-zinc-500'}`}>
+                                        {i + 1}
+                                    </span>
+                                    <div className="overflow-hidden">
+                                        <p className="text-sm font-bold text-zinc-200 truncate">{user.displayName}</p>
+                                        <p className="text-xs text-zinc-500 truncate">Score: {user.score}</p>
+                                    </div>
+                                </div>
+                                <div className={`flex items-center gap-1.5 text-xs font-bold text-purple-500`}>
+                                    <span>{user.score}</span>
+                                    <Crown className="w-3 h-3" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+            </div >
         </div >
     );
 };

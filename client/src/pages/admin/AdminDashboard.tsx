@@ -18,7 +18,7 @@ const AdminDashboard = () => {
     });
     const [timeRange, setTimeRange] = useState('7d');
 
-    const maxVisits = Math.max(...(stats.trafficData.length > 0 ? stats.trafficData.map((d: any) => d.visits) : [100]));
+    const maxVisits = Math.max(...(stats.trafficData.length > 0 ? stats.trafficData.map((d: any) => d.visits) : [0])) || 1;
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -132,31 +132,29 @@ const AdminDashboard = () => {
                         />
                     </div>
 
-                    {/* Custom SVG Bar Chart */}
-                    <div className="h-64 w-full flex items-end justify-between gap-2 px-2">
-                        {stats.trafficData.length === 0 ? (
-                            <div className="w-full h-full flex items-center justify-center text-zinc-600">ไม่มีข้อมูลการเข้าชม</div>
-                        ) : (
-                            stats.trafficData.map((data: any, i: number) => {
-                                const height = (data.visits / maxVisits) * 100;
+                    {/* Graph Container */}
+                    <div className="min-w-[300px] overflow-x-auto">
+                        <div className="h-64 w-full flex items-end justify-between gap-1 px-2">
+                            {(stats.trafficData || []).map((data: any, i: number) => {
+                                const max = maxVisits;
+                                const heightPercentage = Math.min((data.visits / max) * 100, 100);
                                 return (
-                                    <div key={i} className="flex flex-col items-center gap-2 w-full group">
-                                        <div className="relative w-full flex justify-center">
-                                            {/* Tooltip */}
-                                            <div className="absolute -top-8 bg-zinc-800 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-zinc-700 pointer-events-none">
-                                                {data.visits} ครั้ง
-                                            </div>
-                                            {/* Bar */}
-                                            <div
-                                                className="w-full max-w-[40px] bg-gradient-to-t from-red-900/50 to-red-500/50 rounded-t-sm hover:from-red-800 hover:to-red-400 transition-all duration-300 relative group-hover:shadow-[0_0_15px_rgba(239,68,68,0.3)]"
-                                                style={{ height: `${Math.max(height, 5)}%` }}
-                                            />
+                                    <div key={i} className="w-full bg-zinc-800 rounded-t-sm relative group hover:bg-red-500/20 transition-colors"
+                                        style={{ height: `${heightPercentage === 0 ? 5 : heightPercentage}%` }}>
+                                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-black text-xs font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none text-nowrap">
+                                            {data.visits} ครั้ง
                                         </div>
-                                        <span className="text-xs text-zinc-500 font-mono">{data.day}</span>
                                     </div>
                                 );
-                            })
-                        )}
+                            })}
+                        </div>
+                        <div className="flex justify-between mt-4 text-xs text-zinc-500 px-2 gap-1 overflow-visible">
+                            {(stats.trafficData || []).map((data: any, i: number) => (
+                                <span key={i} className="flex-1 text-center whitespace-nowrap">
+                                    {data.day}
+                                </span>
+                            ))}
+                        </div>
                     </div>
                 </div>
 

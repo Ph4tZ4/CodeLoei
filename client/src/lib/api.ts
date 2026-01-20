@@ -49,11 +49,11 @@ export const api = {
     async uploadFiles(projectId: string, files: any[], token: string) {
         return this.post('/projects/upload', { projectId, files }, token);
     },
-    async getProjectFiles(projectId: string) {
-        return this.get(`/projects/${projectId}/files`);
+    async getProjectFiles(projectId: string, token?: string) {
+        return this.get(`/projects/${projectId}/files`, token);
     },
-    async getFileContent(projectId: string, path: string) {
-        return this.get(`/projects/${projectId}/file?path=${encodeURIComponent(path)}`);
+    async getFileContent(projectId: string, path: string, token?: string) {
+        return this.get(`/projects/${projectId}/file?path=${encodeURIComponent(path)}`, token);
     },
     async starProject(projectId: string, token: string) {
         return this.put(`/projects/${projectId}/star`, {}, token);

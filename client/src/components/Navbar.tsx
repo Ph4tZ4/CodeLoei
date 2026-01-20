@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Menu, Terminal, Search, User, ChevronRight, LayoutDashboard, Plus, LogOut, Folder, Moon, Sun } from 'lucide-react';
+import { Menu, Terminal, Search, User, ChevronRight, LayoutDashboard, Plus, LogOut, Folder, Moon, Sun, X } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -26,6 +26,20 @@ const Navbar = ({
     const navigate = useNavigate();
 
     const location = useLocation();
+
+    // Initialize search query from URL if present
+    const [searchQuery, setSearchQuery] = useState(() => {
+        const params = new URLSearchParams(location.search);
+        return params.get('search') || '';
+    });
+
+    // Update search query when URL changes (unidirectional flow support)
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const query = params.get('search') || '';
+        setSearchQuery(query);
+    }, [location.search]);
+
     // Landing page is strictly '/' AND user is NOT logged in.
     // If user IS logged in, '/' renders Home content, so it should have search bar.
     // Actually, simply: show search bar if user is logged in OR path is not '/'.
@@ -97,9 +111,31 @@ const Navbar = ({
                                 </div>
                                 <input
                                     type="text"
-                                    className="block w-full pl-10 pr-3 py-2 border border-border-primary rounded-md leading-5 bg-bg-secondary/50 text-text-primary placeholder-text-muted focus:outline-none focus:bg-bg-secondary focus:border-text-muted focus:ring-1 focus:ring-text-muted sm:text-sm transition-all"
+                                    className="block w-full pl-10 pr-10 py-2 border border-border-primary rounded-md leading-5 bg-bg-secondary/50 text-text-primary placeholder-text-muted focus:outline-none focus:bg-bg-secondary focus:border-text-muted focus:ring-1 focus:ring-text-muted sm:text-sm transition-all"
                                     placeholder={t('nav.search_placeholder')}
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            if (searchQuery.trim()) {
+                                                navigate(`/projects?search=${encodeURIComponent(searchQuery.trim())}`);
+                                            } else {
+                                                navigate('/projects');
+                                            }
+                                        }
+                                    }}
                                 />
+                                {searchQuery && (
+                                    <button
+                                        onClick={() => {
+                                            setSearchQuery('');
+                                            navigate('/projects');
+                                        }}
+                                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-muted hover:text-white transition-colors"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                )}
                             </div>
                         </div>
                     )}

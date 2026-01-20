@@ -28,7 +28,8 @@ export default function ManageProjects() {
     // ... fetchProjects ...
     const fetchProjects = async () => {
         try {
-            const data = await api.get('/projects');
+            const token = localStorage.getItem('adminToken');
+            const data = await api.get('/projects?limit=1000', token || undefined);
             setProjects(data);
         } catch (err) {
             console.error(err);

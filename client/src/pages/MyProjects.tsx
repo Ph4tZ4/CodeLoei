@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Folder, Loader2 } from 'lucide-react';
-import ProjectCard from '../components/ProjectCard';
+import { Folder, Loader2, Star, Eye } from 'lucide-react';
+
 import type { Project } from '../types';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { api } from '../lib/api';
@@ -52,7 +52,7 @@ const MyProjects = () => {
     }
 
     return (
-        <div className="animate-fade-in">
+        <div className="animate-fade-in max-w-5xl mx-auto">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div>
                     <h2 className="text-2xl font-bold flex items-center gap-2 text-white">
@@ -62,10 +62,6 @@ const MyProjects = () => {
                         {t('project.my.desc')} ({projects.length})
                     </p>
                 </div>
-                {/* Optional: Add "Create Project" button here if desired, 
-                    but Navbar already has one. Keeping it clean or adding redundancy is fine.
-                    Let's stick to clean for now, Navbar has the primary action.
-                 */}
             </div>
 
             {projects.length === 0 ? (
@@ -77,24 +73,57 @@ const MyProjects = () => {
                     <p className="text-zinc-500 max-w-sm mx-auto mb-8">
                         {t('project.my.empty_desc')}
                     </p>
-                    {/* Only show create button if user is college_member (checked via type usually, 
-                        or just fail gracefully if they try. Navbar handles permission check for button visibility.
-                        We can double check userType here if we want to show a button.)
-                     */}
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="flex flex-col space-y-3">
                     {projects.map((project, idx) => (
-                        <div key={project._id || idx} className="relative group">
-                            <ProjectCard
-                                project={project}
-                                index={idx}
-                                onClick={() => navigate(`/projects/${project._id}`)}
-                            />
-                            {/* Overlay Badge for Private Projects if needed, 
-                                though Card usually shows it. 
-                                ProjectCard handles visibility icon.
-                             */}
+                        <div
+                            key={project._id || idx}
+                            onClick={() => navigate(`/projects/${project._id}`)}
+                            className="group flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-black/40 backdrop-blur-sm border border-zinc-800 hover:border-zinc-600 rounded-lg p-4 transition-all duration-200 hover:bg-zinc-900/50 cursor-pointer"
+                            style={{ animationDelay: `${idx * 0.05}s` }}
+                        >
+                            {/* Icon / Type Indicator */}
+                            <div className="flex-shrink-0 mt-1 sm:mt-0">
+                                <div className="w-10 h-10 rounded-lg  bg-zinc-800/50 flex items-center justify-center border border-zinc-700/50 group-hover:border-zinc-600">
+                                    <Folder className="w-5 h-5 text-blue-400" />
+                                </div>
+                            </div>
+
+                            {/* Main Content */}
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <h3 className="text-white font-medium truncate group-hover:text-blue-400 transition-colors">
+                                        {project.name}
+                                    </h3>
+                                    <span className={`text-[10px] px-2 py-0.5 rounded-full border border-zinc-700/50 ${project.visibility === 'private' ? 'bg-yellow-500/10 text-yellow-500' : 'bg-green-500/10 text-green-500'
+                                        }`}>
+                                        {project.visibility === 'private' ? 'Private' : 'Public'}
+                                    </span>
+                                </div>
+                                <p className="text-gray-500 text-sm truncate max-w-2xl">
+                                    {project.description || 'No description provided.'}
+                                </p>
+                            </div>
+
+                            {/* Stats & Meta */}
+                            <div className="flex items-center gap-4 sm:ml-auto text-xs text-gray-500">
+                                <div className="flex items-center gap-1.5 min-w-[60px]">
+                                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                    {project.language}
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <Star className="w-3.5 h-3.5" />
+                                    {project.stars}
+                                </div>
+                                <div className="flex items-center gap-1 hidden sm:flex">
+                                    <Eye className="w-3.5 h-3.5" />
+                                    {project.views}
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <span className="text-xs text-zinc-600">Updated {new Date(project.updatedAt).toLocaleDateString()}</span>
+                                </div>
+                            </div>
                         </div>
                     ))}
                 </div>

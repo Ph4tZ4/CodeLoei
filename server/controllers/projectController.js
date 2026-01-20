@@ -11,8 +11,14 @@ exports.getProjects = async (req, res) => {
         const limit = parseInt(req.query.limit) || 20;
         const skip = (page - 1) * limit;
 
-        // Only show public projects in the main feed
-        const projects = await Project.find({ visibility: 'public' })
+        // Only show public projects in the main feed unless admin
+        const query = { visibility: 'public' };
+
+        if (req.user && req.user.userType === 'admin') {
+            delete query.visibility; // Admins see all
+        }
+
+        const projects = await Project.find(query)
             .populate('ownerId', 'displayName photoURL isBanned')
             .sort({ createdAt: -1 })
             .skip(skip)
@@ -63,8 +69,19 @@ exports.getProject = async (req, res) => {
 
         // Check visibility
         if (project.visibility === 'private') {
+            console.log(`[DEBUG] Check Access: Project=${project._id}, User=${req.user ? req.user.id : 'None'}`);
             // Need to be owner
-            if (!req.user || project.ownerId._id.toString() !== req.user.id) {
+            if (!req.user) {
+                return res.status(403).json({ msg: 'Access denied. Private project.' });
+            }
+
+            // Check if user is owner or admin
+            const isOwner = project.ownerId._id.toString() === req.user.id.toString();
+            const isAdmin = req.user.userType === 'admin';
+
+            console.log(`[DEBUG] Roles: IsOwner=${isOwner}, IsAdmin=${isAdmin}`);
+
+            if (!isOwner && !isAdmin) {
                 return res.status(403).json({ msg: 'Access denied. Private project.' });
             }
         }
@@ -327,7 +344,13 @@ exports.getProjectFiles = async (req, res) => {
 
         // Check visibility
         if (project.visibility === 'private') {
-            if (!req.user || project.ownerId.toString() !== req.user.id) {
+            if (!req.user) {
+                return res.status(403).json({ msg: 'Access denied' });
+            }
+            const isOwner = project.ownerId.toString() === req.user.id.toString();
+            const isAdmin = req.user.userType === 'admin';
+
+            if (!isOwner && !isAdmin) {
                 return res.status(403).json({ msg: 'Access denied' });
             }
         }
@@ -353,7 +376,13 @@ exports.getFileContent = async (req, res) => {
 
         // Check visibility
         if (project.visibility === 'private') {
-            if (!req.user || project.ownerId.toString() !== req.user.id) {
+            if (!req.user) {
+                return res.status(403).json({ msg: 'Access denied' });
+            }
+            const isOwner = project.ownerId.toString() === req.user.id.toString();
+            const isAdmin = req.user.userType === 'admin';
+
+            if (!isOwner && !isAdmin) {
                 return res.status(403).json({ msg: 'Access denied' });
             }
         }
@@ -483,11 +512,103 @@ exports.getProjectStats = async (req, res) => {
             { $limit: 10 }
         ]);
 
+        // 7. Top Popular (Sum of everything)
+        // Score = stars + downloadCount + views
+        const topPopular = await Project.aggregate([
+            {
+                $addFields: {
+                    score: {
+                        $add: [
+                            { $ifNull: ["$stars", 0] },
+                            { $ifNull: ["$downloadCount", 0] },
+                            { $ifNull: ["$views", 0] }
+                        ]
+                    }
+                }
+            },
+            { $sort: { score: -1 } },
+            { $limit: 5 },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "ownerId",
+                    foreignField: "_id",
+                    as: "owner"
+                }
+            },
+            { $unwind: "$owner" },
+            {
+                $project: {
+                    name: 1,
+                    score: 1,
+                    ownerId: { displayName: "$owner.displayName" }
+                }
+            }
+        ]);
+
+        // 8. Top Popular Users (Project Stats + Followers)
+        const topPopularUsers = await Project.aggregate([
+            {
+                $group: {
+                    _id: "$ownerId",
+                    totalViews: { $sum: { $ifNull: ["$views", 0] } },
+                    totalStars: { $sum: { $ifNull: ["$stars", 0] } },
+                    totalDownloads: { $sum: { $ifNull: ["$downloadCount", 0] } }
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "_id",
+                    foreignField: "_id",
+                    as: "user"
+                }
+            },
+            { $unwind: "$user" },
+            {
+                $addFields: {
+                    followerCount: { $size: { $ifNull: ["$user.followers", []] } },
+                    displayName: "$user.displayName",
+                    photoURL: "$user.photoURL"
+                }
+            },
+            {
+                $addFields: {
+                    score: {
+                        $add: [
+                            "$totalViews",
+                            "$totalStars",
+                            "$totalDownloads",
+                            "$followerCount"
+                        ]
+                    }
+                }
+            },
+            { $sort: { score: -1 } },
+            { $limit: 5 },
+            {
+                $project: {
+                    _id: 1,
+                    displayName: 1,
+                    photoURL: 1,
+                    score: 1,
+                    stats: {
+                        views: "$totalViews",
+                        stars: "$totalStars",
+                        downloads: "$totalDownloads",
+                        followers: "$followerCount"
+                    }
+                }
+            }
+        ]);
+
         res.json({
             languageDistribution: langStats.map(s => ({ name: s._id || 'Unknown', value: s.count })),
             visibilityDistribution: visibilityStats.map(s => ({ name: s._id, value: s.count })),
             topViewed,
             topStarred,
+            topPopular,
+            topPopularUsers,
             totalProjects,
             popularTags: popularTags.map(t => ({ name: t._id, value: t.count }))
         });
